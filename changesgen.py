@@ -2,22 +2,14 @@
 
 import argparse
 from bs4 import BeautifulSoup
-import json
 import glob
+import time
 import logging as LOG
 import requests
+import textwrap
 import urllib.parse
 
 newreleases_api_key = 'mfjta88m07fphmda72ef6ngsz8ab70epqtk0'
-
-
-def fetch_rc_user_json():
-    resp = requests.get('https://chat.suse.de/api/v1/users.list?count=0',
-            headers={'X-Auth-Token': rc_auth_token,
-                     'X-User-Id': rc_user_id
-                })
-
-    return resp.json()
 
 
 def parse_from_spec_file():
@@ -40,7 +32,8 @@ def parse_from_spec_file():
         if line_keyword in ('name', 'version'):
             pkg_info[line_keyword] = line.strip().split(' ')[-1]
 
-        if ((line_keyword in ('source', 'source0', 'url')) and 'github.com' in line):
+        if ((line_keyword in ('source', 'source0', 'url')) and
+                'github.com' in line):
             gh_url = line.strip().split(' ')[-1]
 
             for k in pkg_info:
@@ -57,15 +50,17 @@ def req_addnewrelease(provider, path):
     global newreleases_api_key
 
     resp = requests.post(
-        f"https://api.newreleases.io/v1/projects",
+        "https://api.newreleases.io/v1/projects",
         headers={'X-Key': newreleases_api_key},
         json={
             'provider': provider,
             'name': path,
-            'email_notification':'instant'
+            'email_notification': 'instant'
         }
     )
-    LOG.info(f"adding new release for provider {provider}/{path}: {resp.status_code}")
+    LOG.info("adding new release for provider "
+             f"{provider}/{path}: {resp.status_code}")
+    return resp.status_code, resp.json()
 
 
 def req_newreleases(path):
@@ -88,34 +83,42 @@ def extract_changes_from_github_releases(github_path, oldv, newv):
 
     summary = ''
 
-    status, resp = req_newreleases(f"projects/github/{github_path}/releases")
-    if status == 404:
-        req_addnewrelease("github", github_path)
+    while True:
+        status, resp = req_newreleases(f"projects/github/{github_path}/releases")
+        if status == 404:
+            status, _ = req_addnewrelease("github", github_path)
+            time.sleep(1)
+            if status >= 400:
+                break
+        else:
+            break
 
     for release in resp['releases']:
-        if release['version'] == oldv:
+        if release['version'] in (oldv, f"v{oldv}"):
             break
         if 'has_note' in release:
             summary += f"- update to {release['version']}:\n"
             _, versionnote = req_newreleases(f"projects/github/{github_path}/releases/{release['version']}/note")
             for line in BeautifulSoup(versionnote['message'], features="lxml").get_text().split('\n'):
                 if len(line) > 2 and not line.startswith(' '):
-                    line = '  * ' + line
+                    line = '  * ' + "\n    ".join(textwrap.wrap(line, width=72))
                 if line.endswith(')\n'):
                     line = line.rpartition('(')[0].strip() + '\n'
+                line = line.rstrip()
                 summary += line + '\n'
 
     return summary
+
 
 def main():
 
     LOG.basicConfig(level=LOG.DEBUG)
 
     parse = argparse.ArgumentParser(description='Generate OSC vc changes')
-    parse.add_argument('old', metavar='oldv', type=str,
-        help='Old version')
-    parse.add_argument('new', metavar='newv', type=str,
-        help='New version')
+    parse.add_argument(
+        'old', metavar='oldv', type=str, help='Old version')
+    parse.add_argument(
+        'new', metavar='newv', type=str, help='New version')
 
     args = parse.parse_args()
 
