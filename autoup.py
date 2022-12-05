@@ -44,9 +44,8 @@ def parse_from_spec_file():
 def repology_get_project_candidates():
 
     random_letter = secrets.choice(string.ascii_lowercase)
-    random_letter = 'p'
     resp = requests.get(
-        f"https://repology.org/api/v1/projects/{random_letter}/?inrepo=opensuse_tumbleweed&outdated=1&family_newest=1-"
+        f"https://repology.org/api/v1/projects/{random_letter}/?inrepo=opensuse_tumbleweed&outdated=1&family_newest=4-"
     )
     pkgs = {}
     if resp.status_code == 200:
