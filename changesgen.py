@@ -5,7 +5,9 @@ from bs4 import BeautifulSoup
 import glob
 import time
 import logging as LOG
+import re
 import requests
+import tarfile
 import textwrap
 import urllib.parse
 
@@ -21,13 +23,10 @@ def parse_from_spec_file():
         return pkg_info
 
     for line in open(primary_spec[0]):
-
-        line = line.lower()
-
         if line.partition(' ')[0] in ('%description', '%package'):
             break
 
-        line_keyword = line.partition(':')[0]
+        line_keyword = line.partition(':')[0].lower()
 
         if line_keyword in ('name', 'version'):
             pkg_info[line_keyword] = line.strip().split(' ')[-1]
@@ -79,8 +78,36 @@ def req_newreleases(path):
     return resp.status_code, resp.json()
 
 
-def extract_changes_from_github_releases(github_path, oldv, newv):
+def changes_to_text(changes):
+    """El cheapo cleanup of changes lines"""
+    r = changes
 
+    if r.endswith(')\n'):
+        r = r.rpartition('(')[0].strip() + '\n'
+
+    if len(r) > 2 and not r.startswith(' '):
+        if r.startswith('- '):
+            r = r.partition(' ')[2]
+        if m := re.match(r' *\* (.*)', r):
+            r = m.group(1)
+
+        r = '  * ' + "\n    ".join(textwrap.wrap(r, width=72))
+
+    return r.rstrip()
+
+
+def md_to_text(md):
+    """El cheapo markdown to plain text converter"""
+    r = md
+    # Remove links
+    r = re.sub(r'\[([^]]+)\]\([^)]+\)', '\\1', r)
+    # Remove GitHub style suffixes
+    r = re.sub(r' by \@\S+ in .*$', '', r)
+    return changes_to_text(r)
+
+
+def extract_changes_from_github_releases(github_path, oldv, newv):
+    """call newreleases.io api to fetch new version notices."""
     summary = ''
 
     while True:
@@ -100,14 +127,48 @@ def extract_changes_from_github_releases(github_path, oldv, newv):
             summary += f"- update to {release['version']}:\n"
             _, versionnote = req_newreleases(f"projects/github/{github_path}/releases/{release['version']}/note")
             for line in BeautifulSoup(versionnote['message'], features="lxml").get_text().split('\n'):
-                if len(line) > 2 and not line.startswith(' '):
-                    line = '  * ' + "\n    ".join(textwrap.wrap(line, width=72))
-                if line.endswith(')\n'):
-                    line = line.rpartition('(')[0].strip() + '\n'
-                line = line.rstrip()
-                summary += line + '\n'
-
+                summary += changes_to_text(line) + '\n'
     return summary
+
+
+def extract_changes_from_tarball(name, oldv, newv):
+    LOG.debug(f"looking for {name}-*{newv}.tar.*")
+    for fname in glob.iglob(f"{name}-*{newv}.tar.*"):
+        if not tarfile.is_tarfile(fname):
+            continue
+
+        with tarfile.open(fname) as source:
+            for candidate in (
+                    'NEWS', 'NEWS.adoc', 'NEWS.md', 'NEWS.rst',
+                    'CHANGELOG', 'CHANGELOG.md', 'CHANGELOG.rst', 'ChangeLog', 'changelog',
+                    'CHANGES.md', 'CHANGES.rst'):
+                for name in source.getnames():
+                    if name.rpartition('/')[2] == candidate:
+                        LOG.debug(f'found file {candidate}')
+                        inupdatesection = False
+                        changes = []
+                        for line in source.extractfile(name):
+                            line = line.decode(encoding="utf-8", errors='ignore')
+                            if inupdatesection:
+                                if oldv in line:
+                                    break
+                                if name.rpartition('.')[2] in ('md', 'adoc', 'rst'):
+                                    line = md_to_text(line)
+                                else:
+                                    line = changes_to_text(line)
+
+                                changes.append(line.rstrip() + '\n')
+                                continue
+
+                            if not inupdatesection and newv in line:
+                                inupdatesection = True
+                        if len(changes):
+                            print(f"found changes in {name}\n{''.join(changes)}")
+                            return True
+                            break
+                        pass
+                pass
+    return False
 
 
 def main():
@@ -124,9 +185,13 @@ def main():
 
     package_information = parse_from_spec_file()
 
+    if extract_changes_from_tarball(package_information['name'], args.old, args.new):
+        return
+
     if 'github_project' in package_information:
         print(extract_changes_from_github_releases(
             package_information['github_project'], args.old, args.new))
 
 
 main()
+
