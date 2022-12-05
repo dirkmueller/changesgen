@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 import glob
 import time
 import logging as LOG
+import os
 import re
 import requests
 import tarfile
@@ -14,8 +15,8 @@ import urllib.parse
 newreleases_api_key = 'mfjta88m07fphmda72ef6ngsz8ab70epqtk0'
 
 
-def parse_from_spec_file():
-    primary_spec = sorted(glob.glob('*.spec'), key=len)
+def parse_from_spec_file(path):
+    primary_spec = sorted(glob.glob(os.path.join(path, '*.spec')), key=len)
 
     pkg_info = {}
 
@@ -132,12 +133,13 @@ def extract_changes_from_github_releases(github_path, oldv, newv):
 
 
 def extract_changes_from_tarball(name, oldv, newv):
-    LOG.debug(f"looking for {name}-*{newv}.tar.*")
-    for fname in glob.iglob(f"{name}-*{newv}.tar.*"):
+    LOG.debug(f"looking for *{newv}.tar.*")
+    for fname in glob.iglob(f"*{newv}.tar.*"):
         if not tarfile.is_tarfile(fname):
             continue
 
         with tarfile.open(fname) as source:
+            LOG.debug(f"Scanning {fname}")
             for candidate in (
                     'NEWS', 'NEWS.adoc', 'NEWS.md', 'NEWS.rst',
                     'CHANGELOG', 'CHANGELOG.md', 'CHANGELOG.rst', 'ChangeLog', 'changelog',
@@ -172,7 +174,6 @@ def extract_changes_from_tarball(name, oldv, newv):
 
 
 def main():
-
     LOG.basicConfig(level=LOG.DEBUG)
 
     parse = argparse.ArgumentParser(description='Generate OSC vc changes')
@@ -181,16 +182,24 @@ def main():
     parse.add_argument(
         'new', metavar='newv', type=str, help='New version')
 
-    args = parse.parse_args()
+    package_information = parse_from_spec_file(os.getcwd())
+    oldv = newv = package_information['version']
 
-    package_information = parse_from_spec_file()
+    if os.path.exists('.osc'):
+        old_package_information = parse_from_spec_file(os.path.join(os.getcwd(), '.osc'))
+        oldv = old_package_information['version']
 
-    if extract_changes_from_tarball(package_information['name'], args.old, args.new):
+    if oldv == newv:
+        args = parse.parse_args()
+        oldv = args.old
+        newv = args.new
+
+    if extract_changes_from_tarball(package_information['name'], oldv, newv):
         return
 
     if 'github_project' in package_information:
         print(extract_changes_from_github_releases(
-            package_information['github_project'], args.old, args.new))
+            package_information['github_project'], oldv, newv))
 
 
 main()
