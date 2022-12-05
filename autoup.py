@@ -1,8 +1,6 @@
 #!/usr/bin/python3
 
 import argparse
-from bs4 import BeautifulSoup
-import json
 import os
 import glob
 import sh
@@ -22,13 +20,10 @@ def parse_from_spec_file():
         return pkg_info
 
     for line in open(primary_spec[0]):
-
-        line = line.lower()
-
         if line.partition(' ')[0] in ('%description', '%package'):
             break
 
-        line_keyword = line.partition(':')[0]
+        line_keyword = line.partition(':')[0].lower()
 
         if line_keyword in ('name', 'version'):
             pkg_info[line_keyword] = line.strip().split(' ')[-1]
@@ -49,6 +44,7 @@ def parse_from_spec_file():
 def repology_get_project_candidates():
 
     random_letter = secrets.choice(string.ascii_lowercase)
+    random_letter = 'p'
     resp = requests.get(
         f"https://repology.org/api/v1/projects/{random_letter}/?inrepo=opensuse_tumbleweed&outdated=1&family_newest=1-"
     )
@@ -108,28 +104,38 @@ def test_for_package_version_update(pname, oldv, newv):
             primary_spec = primary_spec[0]
 
             if package_information['version'] in (oldv, ):
-                print(f"Test build {pname}: {oldv} -> {newv}")
-                sh.sed('-i', '-r', '-e',
+                sh.sed(
+                    '-i', '-r', '-e',
                     f"s,^Version: *{oldv},Version:        {newv},",
                     primary_spec)
-                sh.osc.service.disabledrun.download_files()
                 try:
-                    sh.osc.build(
-                        '--noservice', '--vm-type=kvm', '--clean',
-                        'standard', 'x86_64', primary_spec)
+                    sh.Command('/usr/lib/obs/service/download_files')('--outdir', os.getcwd())
+                    # sh.osc.service.disabledrun.download_files()
                 except sh.ErrorReturnCode_1:
-                    print(".. build failed")
+                    print(".. downloading new sources failed")
                     sh.cd('..')
-                    sh.rm('-rf', pname)
                 else:
-                    print("!! osc build returned True!")
-                    return True
+                    for fname in glob.glob(f"*{newv}*"):
+                        oldname = fname.replace(newv, oldv)
+                        if os.path.exists(oldname):
+                            os.remove(oldname)
+
+                    try:
+                        sh.osc.build(
+                            '--noservice', '--vm-type=kvm', '--clean',
+                            'standard', 'x86_64', primary_spec)
+                    except sh.ErrorReturnCode_1:
+                        print(".. build failed")
+                        sh.cd('..')
+                    else:
+                        print("!! osc build Success!")
+                        return True
     sh.rm('-rf', pname)
     return False
 
 
 def main():
-    #LOG.basicConfig(level=LOG.DEBUG)
+    # LOG.basicConfig(level=LOG.DEBUG)
 
     parse = argparse.ArgumentParser(description='Test for version updates')
     parse.add_argument('letter', metavar='letter', type=str, help='starting name to try')
@@ -141,13 +147,11 @@ def main():
     while len(pkgs):
         pname = secrets.choice([p for p in pkgs])
         pkg = pkgs.pop(pname)
-        print(f"[{stat_tested_success}/{stat_tested}] Testing now {pname} (remaining {len(pkgs)})")
+        print(f"[{stat_tested_success}/{stat_tested}] Testing {pname}: {pkg['oldv']} -> {pkg['newv']} (remaining {len(pkgs)})")
         stat_tested += 1
 
         if test_for_package_version_update(pname, pkg['oldv'], pkg['newv']):
-            print(f"Success with package {pname}: {pkg}!")
             stat_tested_success += 1
-
 
 
 main()
