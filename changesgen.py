@@ -30,11 +30,13 @@ def parse_from_spec_file(path):
 
         line_keyword = line.partition(':')[0].lower()
 
+        if line_keyword in ('source', 'source0'):
+            pkg_info['source'] = line.strip().split(' ')[-1]
+
         if line_keyword in ('name', 'version'):
             pkg_info[line_keyword] = line.strip().split(' ')[-1]
 
-        if ((line_keyword in ('source', 'source0', 'url')) and
-                'github.com' in line):
+        if ((line_keyword in ('source', 'source0', 'url')) and 'github.com' in line):
             gh_url = line.strip().split(' ')[-1]
 
             for k in pkg_info:
@@ -192,6 +194,7 @@ def main():
         'new', metavar='newv', type=str, help='New version')
 
     package_information = parse_from_spec_file(os.getcwd())
+
     oldv = newv = package_information['version']
 
     if os.path.exists('.osc'):

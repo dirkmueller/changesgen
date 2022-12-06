@@ -25,6 +25,9 @@ def parse_from_spec_file():
 
         line_keyword = line.partition(':')[0].lower()
 
+        if line_keyword in ('source', 'source0'):
+            pkg_info['source'] = line.strip().split(' ')[-1]
+
         if line_keyword in ('name', 'version'):
             pkg_info[line_keyword] = line.strip().split(' ')[-1]
 
@@ -95,6 +98,8 @@ def test_for_package_checkout(name):
 
 
 def test_for_package_version_update(pname, oldv, newv):
+    build_succeeded = False
+
     if test_for_package_checkout(pname):
         package_information = parse_from_spec_file()
         primary_spec = sorted(glob.glob('*.spec'), key=len)
@@ -107,28 +112,41 @@ def test_for_package_version_update(pname, oldv, newv):
                     '-i', '-r', '-e',
                     f"s,^Version: *{oldv},Version:        {newv},",
                     primary_spec)
-                try:
-                    sh.Command('/usr/lib/obs/service/download_files')('--outdir', os.getcwd())
-                    # sh.osc.service.disabledrun.download_files()
-                except sh.ErrorReturnCode_1:
-                    print(".. downloading new sources failed")
-                    sh.cd('..')
-                else:
-                    for fname in glob.glob(f"*{newv}*"):
-                        oldname = fname.replace(newv, oldv)
-                        if os.path.exists(oldname):
-                            os.remove(oldname)
-
+                if ('source' in package_information and
+                    ('%version' in package_information['source'] or
+                        '%{version}' in package_information['source'])):
                     try:
-                        sh.osc.build(
-                            '--noservice', '--vm-type=kvm', '--clean',
-                            'standard', 'x86_64', primary_spec)
+                        sh.Command('/usr/lib/obs/service/download_files')('--outdir', os.getcwd())
+                        # sh.osc.service.disabledrun.download_files()
                     except sh.ErrorReturnCode_1:
-                        print(".. build failed")
+                        print(".. downloading new sources failed")
                         sh.cd('..')
                     else:
-                        print("!! osc build Success!")
-                        return True
+                        for fname in glob.glob(f"*{newv}*"):
+                            oldname = fname.replace(newv, oldv)
+                            if os.path.exists(oldname):
+                                os.remove(oldname)
+                        try:
+                            sh.osc.build(
+                                '--noservice', '--vm-type=kvm', '--clean',
+                                'standard', 'x86_64', primary_spec)
+                        except sh.ErrorReturnCode_1:
+                            print(".. build failed")
+                            sh.cd('..')
+                        else:
+                            print("!! osc build Success!")
+                            build_succeeded = True
+                else:
+                    print(".. missing Source0/ no %{version} in Source0")
+            else:
+                print(f".. did not find {oldv} in Version - got {package_information['version']}")
+        else:
+            print('.. more than one spec file found')
+    else:
+        print('uses _multibuild or _service')
+
+    if build_succeeded:
+        return True
     sh.rm('-rf', pname)
     return False
 
