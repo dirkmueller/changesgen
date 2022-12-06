@@ -88,6 +88,8 @@ def changes_to_text(changes):
         r = r.rpartition('(')[0].strip() + '\n'
 
     if len(r) > 2 and not r.startswith(' '):
+        while r.startswith('\t'):
+            r = r[1:]
         if r.startswith('- '):
             r = r.partition(' ')[2]
         if m := re.match(r' *\* (.*)', r):
@@ -143,7 +145,7 @@ def extract_changes_from_tarball(name, oldv, newv):
             LOG.debug(f"Scanning {fname}")
             for candidate in (
                     'NEWS', 'NEWS.adoc', 'NEWS.md', 'NEWS.rst',
-                    'CHANGELOG', 'CHANGELOG.md', 'CHANGELOG.rst', 'ChangeLog', 'changelog',
+                    'CHANGELOG', 'CHANGELOG.md', 'CHANGELOG.rst', 'Changelog.txt', 'ChangeLog', 'changelog',
                     'CHANGES.md', 'CHANGES.rst'):
                 for name in source.getnames():
                     if name.rpartition('/')[2] == candidate:
