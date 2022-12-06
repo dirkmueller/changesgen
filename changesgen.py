@@ -10,9 +10,10 @@ import re
 import requests
 import tarfile
 import textwrap
+import configparser
 import urllib.parse
 
-newreleases_api_key = 'mfjta88m07fphmda72ef6ngsz8ab70epqtk0'
+newreleases_api_key = None
 
 
 def parse_from_spec_file(path):
@@ -175,6 +176,12 @@ def extract_changes_from_tarball(name, oldv, newv):
 
 def main():
     LOG.basicConfig(level=LOG.DEBUG)
+
+    with open(os.path.expanduser("~/.config/changesgenrc")) as f:
+        global newreleases_api_key
+        c = configparser.ConfigParser(strict=False)
+        c.read_file(f)
+        newreleases_api_key = c['DEFAULT']['newreleases_api_key']
 
     parse = argparse.ArgumentParser(description='Generate OSC vc changes')
     parse.add_argument(
