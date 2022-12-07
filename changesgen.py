@@ -126,6 +126,10 @@ def extract_changes_from_github_releases(github_path, oldv, newv):
         else:
             break
 
+    if 'code' in resp and resp['code'] > 200:
+        print(f'ERROR: GitHub project path {github_path} is incorrect')
+        return summary
+
     for release in resp['releases']:
         if release['version'] in (oldv, f"v{oldv}"):
             break
@@ -179,7 +183,7 @@ def extract_changes_from_tarball(name, oldv, newv):
 
 
 def main():
-    LOG.basicConfig(level=LOG.DEBUG)
+    # LOG.basicConfig(level=LOG.DEBUG)
 
     with open(os.path.expanduser("~/.config/changesgenrc")) as f:
         global newreleases_api_key
