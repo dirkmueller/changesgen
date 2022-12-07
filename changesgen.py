@@ -134,7 +134,7 @@ def extract_changes_from_github_releases(github_path, oldv, newv):
         if release['version'] in (oldv, f"v{oldv}"):
             break
         if 'has_note' in release:
-            summary += f"- update to {release['version']}:\n"
+            summary += f"update to {release['version']}:\n"
             _, versionnote = req_newreleases(f"projects/github/{github_path}/releases/{release['version']}/note")
             for line in BeautifulSoup(versionnote['message'], features="lxml").get_text().split('\n'):
                 summary += changes_to_text(line) + '\n'
@@ -174,7 +174,7 @@ def extract_changes_from_tarball(name, oldv, newv):
                             if not inupdatesection and newv in line:
                                 inupdatesection = True
                         if len(changes):
-                            print(f"found changes in {name}\n{''.join(changes)}")
+                            print(f"update to {newv}:\n{''.join(changes)}")
                             return True
                             break
                         pass
