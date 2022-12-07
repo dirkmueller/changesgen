@@ -199,6 +199,10 @@ def main():
 
     package_information = parse_from_spec_file(os.getcwd())
 
+    if 'version' not in package_information:
+        LOG.fatal("Cannot determine starting version (not run in osc checkout?)")
+        return
+
     oldv = newv = package_information['version']
 
     if os.path.exists('.osc'):
