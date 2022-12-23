@@ -172,8 +172,9 @@ def extract_changes_from_tarball(name, oldv, newv):
             LOG.debug(f"Scanning {fname}")
             for candidate in (
                     'NEWS', 'NEWS.adoc', 'NEWS.md', 'NEWS.rst',
-                    'CHANGELOG', 'CHANGELOG.md', 'CHANGELOG.rst', 'Changelog.txt', 'ChangeLog', 'changelog',
-                    'CHANGES.md', 'CHANGES.rst'):
+                    'CHANGES.md', 'CHANGES.rst',
+                    'History.txt',
+                    'CHANGELOG', 'CHANGELOG.md', 'CHANGELOG.rst', 'Changelog.txt', 'ChangeLog', 'changelog'):
                 for name in source.getnames():
                     if name.rpartition('/')[2] == candidate:
                         LOG.debug(f'found file {candidate}')
