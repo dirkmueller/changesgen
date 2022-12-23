@@ -106,7 +106,9 @@ def changes_to_text(changes):
     r = changes
 
     if r.endswith(')\n'):
-        r = r.rpartition('(#')[0].strip() + '\n'
+        pr_title = r.rpartition('(#')[0]
+        if pr_title:
+            r = pr_title.strip() + '\n'
 
     if len(r) > 2 and not r.startswith(' '):
         while r.startswith('\t'):
