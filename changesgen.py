@@ -106,6 +106,7 @@ def changes_to_text(changes):
     r = changes
 
     if r.endswith(')\n'):
+        # Change " Foo bar (#123)" into "Foo bar"
         pr_title = r.rpartition('(#')[0]
         if pr_title:
             r = pr_title.strip() + '\n'
@@ -172,8 +173,8 @@ def extract_changes_from_tarball(name, oldv, newv):
             LOG.debug(f"Scanning {fname}")
             for candidate in (
                     'NEWS', 'NEWS.adoc', 'NEWS.md', 'NEWS.rst',
-                    'CHANGES.md', 'CHANGES.rst',
-                    'History.txt',
+                    'CHANGES.md', 'CHANGES.rst', 'CHANGES.txt',
+                    'HISTORY.rst', 'History.txt',
                     'CHANGELOG', 'CHANGELOG.md', 'CHANGELOG.rst', 'Changelog.txt', 'ChangeLog', 'changelog'):
                 for name in source.getnames():
                     if name.rpartition('/')[2] == candidate:
