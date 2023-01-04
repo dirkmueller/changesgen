@@ -51,7 +51,8 @@ def parse_from_spec_file():
         if line_keyword in ('name', 'version'):
             pkg_info[line_keyword] = line.strip().split(' ')[-1]
 
-        if ((line_keyword in ('source', 'source0', 'url')) and 'github.com' in line):
+        if ((line_keyword in ('source', 'source0', 'url')) and
+                'github.com' in line):
             gh_url = line.strip().split(' ')[-1]
 
             for k in pkg_info:
@@ -64,11 +65,13 @@ def parse_from_spec_file():
     return pkg_info
 
 
-def repology_get_project_candidates():
+def repology_get_project_candidates(start_at):
 
-    random_letter = secrets.choice(string.ascii_lowercase)
+    if start_at is None:
+        start_at = secrets.choice(string.ascii_lowercase)
     resp = requests.get(
-        f"https://repology.org/api/v1/projects/{random_letter}/?inrepo=opensuse_tumbleweed&outdated=1&family_newest=4-"
+        f"https://repology.org/api/v1/projects/{start_at}/"
+        "?inrepo=opensuse_tumbleweed&outdated=1&family_newest=4-"
     )
     pkgs = {}
     if resp.status_code == 200:
@@ -108,7 +111,8 @@ def test_for_package_checkout(name):
     except sh.ErrorReturnCode_1:
         return False
     else:
-        if os.path.exists(f"{name}/_service") or os.path.exists(f"{name}/_multibuild"):
+        if (os.path.exists(f"{name}/_service") or
+                os.path.exists(f"{name}/_multibuild")):
             # TODO handle services as well
             sh.rm('-rf', name)
             return False
@@ -136,7 +140,8 @@ def test_for_package_version_update(pname, oldv, newv):
                     ('%version' in package_information['source'] or
                         '%{version}' in package_information['source'])):
                     try:
-                        sh.Command('/usr/lib/obs/service/download_files')('--outdir', os.getcwd())
+                        sh.Command('/usr/lib/obs/service/download_files')(
+                            '--outdir', os.getcwd())
                         # sh.osc.service.disabledrun.download_files()
                     except sh.ErrorReturnCode_1:
                         print(".. downloading new sources failed")
@@ -163,7 +168,7 @@ def test_for_package_version_update(pname, oldv, newv):
         else:
             print('.. more than one spec file found')
     else:
-        print('uses _multibuild or _service')
+        LOG.debug('uses _multibuild or _service')
 
     if build_succeeded:
         return True
@@ -175,9 +180,13 @@ def main():
     # LOG.basicConfig(level=LOG.DEBUG)
 
     parse = argparse.ArgumentParser(description='Test for version updates')
-    parse.add_argument('letter', metavar='letter', type=str, help='starting name to try')
+    parse.add_argument(
+        '--letter', metavar='letter', type=str, default=None,
+        help='starting name to try')
 
-    pkgs = repology_get_project_candidates()
+    args = parse.parse_args()
+
+    pkgs = repology_get_project_candidates(args.letter)
 
     stat_tested = stat_tested_success = 0
 
