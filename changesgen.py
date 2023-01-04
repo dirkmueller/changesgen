@@ -155,11 +155,12 @@ def extract_changes_from_github_releases(github_path, oldv, newv):
     for release in resp['releases']:
         if release['version'] in (oldv, f"v{oldv}"):
             break
-        if 'message' in release:
-            summary += f"update to {release['version']}:\n"
+        if 'has_note' in release:
             _, versionnote = req_newreleases(f"projects/github/{github_path}/releases/{release['version']}/note")
-            for line in BeautifulSoup(versionnote['message'], features="lxml").get_text().split('\n'):
-                summary += changes_to_text(line) + '\n'
+            if 'message' in versionnote:
+                summary += f"update to {release['version']}:\n"
+                for line in BeautifulSoup(versionnote['message'], features="lxml").get_text().split('\n'):
+                    summary += changes_to_text(line) + '\n'
     return summary
 
 
@@ -175,7 +176,8 @@ def extract_changes_from_tarball(name, oldv, newv):
                     'NEWS', 'NEWS.adoc', 'NEWS.md', 'NEWS.rst',
                     'CHANGES.md', 'CHANGES.rst', 'CHANGES.txt',
                     'HISTORY.rst', 'History.txt',
-                    'CHANGELOG', 'CHANGELOG.md', 'CHANGELOG.rst', 'Changelog.txt', 'ChangeLog', 'changelog'):
+                    'CHANGELOG', 'CHANGELOG.md', 'CHANGELOG.rst', 'changelog.rst', 'Changelog.txt',
+                    'ChangeLog', 'changelog'):
                 for name in source.getnames():
                     if name.rpartition('/')[2] == candidate:
                         LOG.debug(f'found file {candidate}')
@@ -246,4 +248,3 @@ def main():
 
 
 main()
-
