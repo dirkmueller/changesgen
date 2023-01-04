@@ -186,7 +186,11 @@ def extract_changes_from_tarball(name, oldv, newv):
                         for line in source.extractfile(name):
                             line = line.decode(encoding="utf-8", errors='ignore')
                             if inupdatesection:
-                                if oldv in line:
+                                stripped_line = line.strip(" \r\n\t*-=")
+                                if not stripped_line:
+                                    continue
+                                if (stripped_line.startswith(oldv) or
+                                        stripped_line.startswith(f"v{oldv}")):
                                     break
                                 if name.rpartition('.')[2] in ('md', 'adoc', 'rst'):
                                     line = md_to_text(line)
