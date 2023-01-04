@@ -155,7 +155,7 @@ def extract_changes_from_github_releases(github_path, oldv, newv):
     for release in resp['releases']:
         if release['version'] in (oldv, f"v{oldv}"):
             break
-        if 'has_note' in release:
+        if 'message' in release:
             summary += f"update to {release['version']}:\n"
             _, versionnote = req_newreleases(f"projects/github/{github_path}/releases/{release['version']}/note")
             for line in BeautifulSoup(versionnote['message'], features="lxml").get_text().split('\n'):
