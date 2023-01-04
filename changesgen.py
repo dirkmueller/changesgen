@@ -135,7 +135,7 @@ def md_to_text(md):
 
 
 def extract_changes_from_github_releases(github_path, oldv, newv):
-    """call newreleases.io api to fetch new version notices."""
+    """call newreleases.io API to fetch new version notices."""
     summary = ''
 
     while True:
@@ -174,23 +174,26 @@ def extract_changes_from_tarball(name, oldv, newv):
             LOG.debug(f"Scanning {fname}")
             for candidate in (
                     'NEWS', 'NEWS.adoc', 'NEWS.md', 'NEWS.rst',
-                    'CHANGES.md', 'CHANGES.rst', 'CHANGES.txt',
+                    'CHANGES.md', 'CHANGES.rst', 'CHANGES.txt', 'CHANGES',
                     'HISTORY.rst', 'History.txt',
-                    'CHANGELOG', 'CHANGELOG.md', 'CHANGELOG.rst', 'changelog.rst', 'Changelog.txt',
-                    'ChangeLog', 'changelog'):
+                    'CHANGELOG',
+                    'CHANGELOG.md', 'CHANGELOG.rst', 'changelog.rst',
+                    'Changelog.txt', 'ChangeLog', 'changelog'):
                 for name in source.getnames():
                     if name.rpartition('/')[2] == candidate:
                         LOG.debug(f'found file {candidate}')
                         inupdatesection = False
                         changes = []
                         for line in source.extractfile(name):
-                            line = line.decode(encoding="utf-8", errors='ignore')
+                            line = line.decode(encoding="utf-8",
+                                               errors='ignore')
                             if inupdatesection:
-                                stripped_line = line.strip(" \r\n\t*-=")
+                                stripped_line = line.strip(" \r\n\t*-=:/vr")
                                 if not stripped_line:
                                     continue
                                 if (stripped_line.startswith(oldv) or
-                                        stripped_line.startswith(f"v{oldv}")):
+                                        stripped_line.endswith(oldv) or
+                                        stripped_line.endswith(f"{oldv}.0")):
                                     break
                                 if name.rpartition('.')[2] in ('md', 'adoc', 'rst'):
                                     line = md_to_text(line)
