@@ -176,12 +176,11 @@ def extract_changes_from_tarball(name, oldv, newv):
                     'NEWS', 'NEWS.adoc', 'NEWS.md', 'NEWS.rst',
                     'CHANGES.md', 'CHANGES.rst', 'CHANGES.txt', 'CHANGES',
                     'HISTORY.rst', 'History.txt',
-                    'CHANGELOG',
-                    'CHANGELOG.md', 'CHANGELOG.rst', 'changelog.rst',
-                    'Changelog.txt', 'ChangeLog', 'changelog'):
+                    'CHANGELOG.md', 'CHANGELOG.rst', 'Changelog.txt',
+                    'ChangeLog', 'changelog'):
                 for name in source.getnames():
-                    if name.rpartition('/')[2] == candidate:
-                        LOG.debug(f'found file {candidate}')
+                    if name.rpartition('/')[2].casefold() == candidate.casefold():
+                        LOG.debug(f'found changes file: {candidate}')
                         inupdatesection = False
                         changes = []
                         for line in source.extractfile(name):
