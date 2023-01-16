@@ -214,19 +214,24 @@ def extract_changes_from_tarball(name, oldv, newv):
 
 
 def main():
-    # LOG.basicConfig(level=LOG.DEBUG)
-
     with open(os.path.expanduser("~/.config/changesgenrc")) as f:
         global newreleases_api_key
         c = configparser.ConfigParser(strict=False)
         c.read_file(f)
         newreleases_api_key = c['DEFAULT']['newreleases_api_key']
 
-    parse = argparse.ArgumentParser(description='Generate OSC vc changes')
+    parse = argparse.ArgumentParser(
+        description='Generate OSC vc changes', exit_on_error=False)
+    parse.add_argument('-d', '--debug', action='store_true')
     parse.add_argument(
-        'old', metavar='oldv', type=str, help='Old version')
+        'old', metavar='oldv', type=str, help='Old version', nargs='?')
     parse.add_argument(
-        'new', metavar='newv', type=str, help='New version')
+        'new', metavar='newv', type=str, help='New version', nargs='?')
+
+    args = parse.parse_args()
+
+    if args.debug:
+        LOG.basicConfig(level=LOG.DEBUG)
 
     package_information = parse_from_spec_file(os.getcwd())
 
@@ -241,7 +246,6 @@ def main():
         oldv = old_package_information['version']
 
     if oldv == newv:
-        args = parse.parse_args()
         oldv = args.old
         newv = args.new
 
