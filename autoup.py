@@ -85,7 +85,7 @@ def repology_get_project_candidates(start_at):
                     package = repo['srcname']
                     break
 
-            if not package:
+            if not package or package.startswith('perl-'):
                 # TODO
                 continue
 
