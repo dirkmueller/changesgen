@@ -91,7 +91,7 @@ def repology_get_project_candidates(start_at):
 
             pkgs[package] = {}
             for repo in resp[upstream_package]:
-                if repo['repo'] == 'opensuse_tumbleweed':
+                if repo['repo'] == 'opensuse_tumbleweed' and repo['status'] != 'legacy':
                     pkgs[package]['oldv'] = repo['version']
                 if repo['status'] == 'newest':
                     pkgs[package]['newv'] = repo['version']
