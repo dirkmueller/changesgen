@@ -187,14 +187,14 @@ def extract_changes_from_tarball(name, oldv, newv):
                             line = line.decode(encoding="utf-8",
                                                errors='ignore')
                             if inupdatesection:
-                                stripped_line = line.strip(" \r\n\t*-=:/vr")
+                                stripped_line = line.strip(" \r\n\t*#-=:/vr")
                                 if not stripped_line:
                                     continue
                                 if (stripped_line.startswith(oldv) or
                                         stripped_line.endswith(oldv) or
                                         stripped_line.endswith(f"{oldv}.0")):
                                     break
-                                if name.rpartition('.')[2] in ('md', 'adoc', 'rst'):
+                                if name.rpartition('.')[2].lower() in ('md', 'adoc', 'rst'):
                                     line = md_to_text(line)
                                 else:
                                     line = changes_to_text(line)
