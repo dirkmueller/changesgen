@@ -55,15 +55,16 @@ def parse_from_spec_file(path):
         if line_keyword in ('name', 'version'):
             pkg_info[line_keyword] = line.strip().split(' ')[-1]
 
-        if ((line_keyword in ('source', 'source0', 'url')) and 'github.com' in line):
-            gh_url = line.strip().split(' ')[-1]
+        if (line_keyword in ('source', 'source0', 'url') and '://' in line):
+            line_value = line.strip().split(' ')[-1]
 
             for k in pkg_info:
-                gh_url = gh_url.replace('%{' + k + '}', pkg_info[k])
+                line_value = line_value.replace('%{' + k + '}', pkg_info[k])
 
             # normalize
-            o = urllib.parse.urlparse(gh_url)
-            pkg_info['github_project'] = '/'.join(o.path.split('/')[1:3])
+            gh_url = urllib.parse.urlparse(line_value)
+            if 'github.com' == gh_url.netloc:
+                pkg_info['github_project'] = '/'.join(gh_url.path.split('/')[1:3])
 
     return pkg_info
 
@@ -129,8 +130,6 @@ def md_to_text(md):
     r = md
     # Remove links
     r = re.sub(r'\[([^]]+)\]\([^)]+\)', '\\1', r)
-    # Remove GitHub style suffixes
-    r = re.sub(r' by \@\S+ in .*$', '', r)
     return changes_to_text(r)
 
 
@@ -160,11 +159,14 @@ def extract_changes_from_github_releases(github_path, oldv, newv):
             if 'message' in versionnote:
                 summary += f"update to {release['version']}:\n"
                 for line in BeautifulSoup(versionnote['message'], features="lxml").get_text().split('\n'):
+                    # Remove GitHub style suffixes
+                    line = re.sub(r' by \@\S+ in .*$', '', line)
                     summary += changes_to_text(line) + '\n'
     return summary
 
 
-def extract_changes_from_tarball(name, oldv, newv):
+def extract_changes_from_tarball(package_information, oldv, newv):
+    package_name = package_information['name']
     LOG.debug(f"looking for *{newv}.tar.*")
     for fname in glob.iglob(f"*{newv}.tar.*"):
         if not tarfile.is_tarfile(fname):
@@ -190,9 +192,14 @@ def extract_changes_from_tarball(name, oldv, newv):
                                 stripped_line = line.strip(" \r\n\t*#-=:/vr")
                                 if not stripped_line:
                                     continue
+                                LOG.debug(f"stripped_line {stripped_line} looking for {package_name}")
+                                # packagename oldversion (releasedate)
+                                if stripped_line.lower().startswith(package_name.lower()):
+                                    stripped_line = stripped_line.partition(' ')[2].strip()
                                 if (stripped_line.startswith(oldv) or
                                         stripped_line.endswith(oldv) or
-                                        stripped_line.endswith(f"{oldv}.0")):
+                                        stripped_line.endswith(f"{oldv}.0") or
+                                        ('release' in stripped_line and oldv in stripped_line)):
                                     break
                                 if name.rpartition('.')[2].lower() in ('md', 'adoc', 'rst'):
                                     line = md_to_text(line)
@@ -249,10 +256,10 @@ def main():
         oldv = args.old
         newv = args.new
 
-    if extract_changes_from_tarball(package_information['name'], oldv, newv):
+    if extract_changes_from_tarball(package_information, oldv, newv):
         return
 
-    if 'github_project' in package_information:
+    if 'github_project' in package_information and newreleases_api_key:
         print(extract_changes_from_github_releases(
             package_information['github_project'], oldv, newv))
 
