@@ -198,6 +198,7 @@ def extract_changes_from_tarball(package_information, oldv, newv):
                                 if stripped_line.lower().startswith(package_name.lower()):
                                     stripped_line = stripped_line.partition(' ')[2].strip()
                                 if (stripped_line.startswith(oldv) or
+                                        stripped_line.lower().startswith(f"version {oldv}") or
                                         stripped_line.endswith(oldv) or
                                         stripped_line.endswith(f"{oldv}.0") or
                                         ('release' in stripped_line and oldv in stripped_line)):
