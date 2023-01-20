@@ -31,8 +31,8 @@ import requests
 import urllib.parse
 
 
-def parse_from_spec_file():
-    primary_spec = sorted(glob.glob('*.spec'), key=len)
+def parse_from_spec_file(path):
+    primary_spec = sorted(glob.glob(os.path.join(path, '*.spec')), key=len)
 
     pkg_info = {}
 
@@ -51,16 +51,16 @@ def parse_from_spec_file():
         if line_keyword in ('name', 'version'):
             pkg_info[line_keyword] = line.strip().split(' ')[-1]
 
-        if ((line_keyword in ('source', 'source0', 'url')) and
-                'github.com' in line):
-            gh_url = line.strip().split(' ')[-1]
+        if (line_keyword in ('source', 'source0', 'url') and '://' in line):
+            line_value = line.strip().split(' ')[-1]
 
             for k in pkg_info:
-                gh_url = gh_url.replace('%{' + k + '}', pkg_info[k])
+                line_value = line_value.replace('%{' + k + '}', pkg_info[k])
 
             # normalize
-            o = urllib.parse.urlparse(gh_url)
-            pkg_info['github_project'] = '/'.join(o.path.split('/')[1:3])
+            gh_url = urllib.parse.urlparse(line_value)
+            if 'github.com' == gh_url.netloc:
+                pkg_info['github_project'] = '/'.join(gh_url.path.split('/')[1:3])
 
     return pkg_info
 
@@ -125,7 +125,7 @@ def test_for_package_version_update(pname, oldv, newv):
     build_succeeded = False
 
     if test_for_package_checkout(pname):
-        package_information = parse_from_spec_file()
+        package_information = parse_from_spec_file(os.getcwd())
         primary_spec = sorted(glob.glob('*.spec'), key=len)
 
         if len(primary_spec) == 1:
