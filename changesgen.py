@@ -190,7 +190,7 @@ def extract_changes_from_tarball(package_information, oldv, newv):
                             line = line.decode(encoding="utf-8",
                                                errors='ignore')
                             if inupdatesection:
-                                stripped_line = line.strip(" \r\n\t*#-=:/vr")
+                                stripped_line = line.strip(" \r\n\()t*#-=:/")
                                 if not stripped_line:
                                     continue
                                 LOG.debug(f"stripped_line {stripped_line} looking for {package_name}")
@@ -198,6 +198,7 @@ def extract_changes_from_tarball(package_information, oldv, newv):
                                 if stripped_line.lower().startswith(package_name.lower()):
                                     stripped_line = stripped_line.partition(' ')[2].strip()
                                 if (stripped_line.startswith(oldv) or
+                                        stripped_line.startswith(f"({oldv})") or
                                         stripped_line.lower().startswith(f"version {oldv}") or
                                         stripped_line.endswith(oldv) or
                                         stripped_line.endswith(f"{oldv}.0") or
