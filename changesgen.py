@@ -225,7 +225,7 @@ def extract_changes_from_tarball(package_information, oldv, newv):
                             line = line.decode(encoding="utf-8",
                                                errors='ignore')
                             if inupdatesection:
-                                stripped_line = line.strip(" \r\n\()t*#-=:/")
+                                stripped_line = line.strip(" \r\n\()[]t*#-=:/")
                                 if not stripped_line:
                                     continue
                                 LOG.debug(f"stripped_line {stripped_line} looking for {package_name}")
