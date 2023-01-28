@@ -133,7 +133,42 @@ def md_to_text(md):
     return changes_to_text(r)
 
 
-def extract_changes_from_github_releases(github_path, oldv, newv):
+def extract_changes_from_github_release(github_path, oldv, newv):
+    """call GitHub  API to fetch new version notices."""
+    summary = ''
+    path = f"repos/{github_path}/releases"
+    LOG.debug(f"requesting github release: {path}")
+    resp = requests.get(
+        f'https://api.github.com/{path}',
+        headers={
+            'X-GitHub-Api-Version': '2022-11-28',
+            'Accept': 'application/vnd.github+json'})
+
+    if resp.status_code > 200:
+        LOG.error(f"GitHub Releases returned {resp.status_code}")
+        return summary
+
+    resp = resp.json()
+    for release in resp:
+        if release['prerelease'] or release['draft']:
+            continue
+        release_version = release['tag_name']
+        if release_version[0] in ('r', 'v'):
+            release_version = release_version[1:]
+        LOG.debug(f"checking {release_version} for {oldv}")
+        if release_version in (oldv, f"v{oldv}"):
+            break
+        if 'body' in release:
+            versionnote = release['body']
+            summary += f"update to {release_version}:\n"
+            for line in BeautifulSoup(versionnote, features="lxml").get_text().split('\n'):
+                # Remove GitHub style suffixes
+                line = re.sub(r' by \@\S+ in .*$', '', line)
+                summary += md_to_text(line) + '\n'
+    return summary
+
+
+def extract_changes_from_newreleases(github_path, oldv, newv):
     """call newreleases.io API to fetch new version notices."""
     summary = ''
 
@@ -262,9 +297,18 @@ def main():
     if extract_changes_from_tarball(package_information, oldv, newv):
         return
 
-    if 'github_project' in package_information and newreleases_api_key:
-        print(extract_changes_from_github_releases(
-            package_information['github_project'], oldv, newv))
+    if not oldv or not newv:
+        LOG.fatal(f"Missing oldv {oldv} and newv {newv}")
+        return
 
+    summary = None
+    if 'github_project' in package_information:
+        summary = extract_changes_from_github_release(
+            package_information['github_project'], oldv, newv)
+        if not summary and newreleases_api_key:
+            summary = extract_changes_from_newreleases(
+                package_information['github_project'], oldv, newv)
+    if summary and len(summary) > 5:
+        print(summary)
 
 main()
