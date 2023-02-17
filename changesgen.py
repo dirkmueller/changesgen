@@ -112,7 +112,7 @@ def changes_to_text(changes):
         if pr_title:
             r = pr_title.strip() + '\n'
 
-    if len(r) > 2 and not r.startswith(' '):
+    if len(r) > 2:
         while r.startswith('\t'):
             r = r[1:]
         if r.startswith('- '):
@@ -120,7 +120,9 @@ def changes_to_text(changes):
         if m := re.match(r' *\* (.*)', r):
             r = m.group(1)
 
-        r = '  * ' + "\n    ".join(textwrap.wrap(r, width=72))
+    r = "\n".join(
+        textwrap.wrap(r, width=65, initial_indent="  * ",
+        subsequent_indent="    "))
 
     return r.rstrip()
 
@@ -228,7 +230,7 @@ def extract_changes_from_tarball(package_information, oldv, newv):
                                 stripped_line = line.strip(" \r\n\()[]t*#-=:/")
                                 if not stripped_line:
                                     continue
-                                LOG.debug(f"stripped_line {stripped_line} looking for {package_name}")
+                                LOG.debug(f"stripped_line {stripped_line}")
                                 # packagename oldversion (releasedate)
                                 if stripped_line.lower().startswith(package_name.lower()):
                                     stripped_line = stripped_line.partition(' ')[2].strip()
