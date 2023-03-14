@@ -213,10 +213,10 @@ def extract_changes_from_tarball(package_information, oldv, newv):
             LOG.debug(f"Scanning {fname}")
             for candidate in (
                     'NEWS', 'NEWS.adoc', 'NEWS.md', 'NEWS.rst',
-                    'RELEASE.rst', 'releasenotes.rst',
+                    'RELEASE.rst', 'releasenotes.rst', 'versionhistory.rst',
                     'CHANGES.md', 'CHANGES.rst', 'CHANGES.txt', 'CHANGES',
                     'HISTORY.rst', 'History.txt',
-                    'CHANGELOG.md', 'CHANGELOG.rst', 'Changelog.txt',
+                    'CHANGELOG.md', 'change_log.md', 'CHANGELOG.rst', 'Changelog.txt',
                     'ChangeLog', 'changelog'):
                 for name in source.getnames():
                     if name.rpartition('/')[2].casefold() == candidate.casefold():
