@@ -205,9 +205,9 @@ def extract_changes_from_newreleases(github_path, oldv, newv):
 
 def extract_changes_from_tarball(package_information, oldv, newv):
     package_name = package_information['name']
-    LOG.debug(f"looking for *{newv}.*")
-    for fname in glob.iglob(f"*{newv}.*"):
-        if not tarfile.is_tarfile(fname):
+    LOG.debug(f"looking for *{newv}*")
+    for fname in glob.iglob(f"*{newv}*"):
+        if not (os.path.isfile(fname) and tarfile.is_tarfile(fname)):
             continue
 
         with tarfile.open(fname) as source:
