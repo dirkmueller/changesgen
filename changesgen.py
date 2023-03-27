@@ -215,8 +215,8 @@ def extract_changes_from_tarball(package_information, oldv, newv):
             for candidate in (
                     'NEWS', 'NEWS.adoc', 'NEWS.md', 'NEWS.rst',
                     'RELEASE.rst', 'releasenotes.rst', 'versionhistory.rst',
+                    'HISTORY.rst', 'HISTORY.md', 'History.txt',
                     'CHANGES.md', 'CHANGES.rst', 'CHANGES.txt', 'CHANGES',
-                    'HISTORY.rst', 'History.txt',
                     'CHANGELOG.md', 'change_log.md', 'CHANGELOG.rst', 'Changelog.txt',
                     'ChangeLog', 'changelog'):
                 for name in source.getnames():
