@@ -124,12 +124,13 @@ def changes_to_text(changes):
         textwrap.wrap(r, width=65, initial_indent="  * ",
         subsequent_indent="    "))
 
+    LOG.debug(f"converted {changes} to {r}")
     return r.rstrip()
 
 
 def md_to_text(md):
     """El cheapo markdown to plain text converter"""
-    r = md
+    r = md.strip(" \r\n")
     # Remove links
     r = re.sub(r'\[([^]]+)\]\([^)]+\)', '\\1', r)
     return changes_to_text(r)
