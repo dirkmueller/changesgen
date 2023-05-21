@@ -104,7 +104,7 @@ def repology_get_project_candidates(start_at):
 
 
 def test_for_package_checkout(name):
-    sh.cd(os.path.expanduser("~/src/os/Factory"))
+    os.chdir(os.path.expanduser("~/src/os/Factory"))
     assert "/" not in name
     sh.rm("-rf", name)
     try:
@@ -118,7 +118,7 @@ def test_for_package_checkout(name):
             sh.rm('-rf', name)
             return False
 
-    sh.cd(name)
+    os.chdir(name)
     return True
 
 
@@ -146,7 +146,7 @@ def test_for_package_version_update(pname, oldv, newv):
                         # sh.osc.service.disabledrun.download_files()
                     except sh.ErrorReturnCode_1:
                         print(".. downloading new sources failed")
-                        sh.cd('..')
+                        os.chdir('..')
                     else:
                         for fname in glob.glob(f"*{newv}*"):
                             oldname = fname.replace(newv, oldv)
@@ -158,7 +158,7 @@ def test_for_package_version_update(pname, oldv, newv):
                                 'standard', 'x86_64', primary_spec)
                         except sh.ErrorReturnCode_1:
                             print(".. build failed")
-                            sh.cd('..')
+                            os.chdir('..')
                         else:
                             print("!! osc build Success!")
                             build_succeeded = True
