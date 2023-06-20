@@ -160,7 +160,7 @@ def test_for_package_version_update(pname, oldv, newv):
                             print(".. build failed")
                             os.chdir('..')
                         else:
-                            print("!! osc build Success!")
+                            print("✔️ osc build Success!")
                             build_succeeded = True
                 else:
                     print(".. missing Source0/ no %{version} in Source0")
