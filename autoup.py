@@ -154,7 +154,7 @@ def test_for_package_version_update(pname, oldv, newv):
                                 os.remove(oldname)
                         try:
                             sh.osc.build(
-                                '--noservice', '--vm-type=kvm', '--clean',
+                                '--noservice', '--clean',
                                 'standard', 'x86_64', primary_spec)
                         except sh.ErrorReturnCode_1:
                             print(".. build failed")
