@@ -121,8 +121,8 @@ def changes_to_text(changes):
             r = m.group(1)
 
     r = "\n".join(
-        textwrap.wrap(r, width=65, initial_indent="  * ",
-        subsequent_indent="    "))
+        textwrap.wrap(
+            r, width=65, initial_indent="  * ", subsequent_indent="    "))
 
     LOG.debug(f"converted {changes} to {r}")
     return r.rstrip()
@@ -193,7 +193,8 @@ def extract_changes_from_newreleases(github_path, oldv, newv):
         if release['version'] in (oldv, f"v{oldv}"):
             break
         if 'has_note' in release:
-            _, versionnote = req_newreleases(f"projects/github/{github_path}/releases/{release['version']}/note")
+            _, versionnote = req_newreleases(
+                f"projects/github/{github_path}/releases/{release['version']}/note")
             if 'message' in versionnote:
                 summary += f"update to {release['version']}:\n"
                 for line in BeautifulSoup(versionnote['message'], features="lxml").get_text().split('\n'):
@@ -219,7 +220,10 @@ def extract_changes_from_tarball(package_information, oldv, newv):
                     'CHANGES.md', 'CHANGES.rst', 'CHANGES.txt', 'CHANGES',
                     'CHANGELOG.md', 'change_log.md', 'CHANGELOG.rst', 'Changelog.txt',
                     'ChangeLog', 'changelog'):
-                for name in source.getnames():
+                for finfo in source.getmembers():
+                    if not finfo.isfile():
+                        continue
+                    name = finfo.name
                     if name.rpartition('/')[2].casefold() == candidate.casefold():
                         LOG.debug(f'found changes file: {candidate}')
                         inupdatesection = False
@@ -228,7 +232,7 @@ def extract_changes_from_tarball(package_information, oldv, newv):
                             line = line.decode(encoding="utf-8",
                                                errors='ignore')
                             if inupdatesection:
-                                stripped_line = line.strip(" \r\n\()[]t*#-=:/")
+                                stripped_line = line.strip(" \r\n()[]t*#-=:/")
                                 if not stripped_line:
                                     continue
                                 LOG.debug(f"stripped_line {stripped_line}")
@@ -313,5 +317,6 @@ def main():
                 package_information['github_project'], oldv, newv)
     if summary and len(summary) > 5:
         print(summary)
+
 
 main()
