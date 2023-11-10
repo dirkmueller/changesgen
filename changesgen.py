@@ -270,7 +270,7 @@ def main():
         global newreleases_api_key
         c = configparser.ConfigParser(strict=False)
         c.read_file(f)
-        newreleases_api_key = c['DEFAULT']['newreleases_api_key']
+        newreleases_api_key = c['DEFAULT'].get('newreleases_api_key', None)
 
     parse = argparse.ArgumentParser(
         description='Generate OSC vc changes', exit_on_error=False)
