@@ -1,5 +1,6 @@
 #!/usr/bin/python3
-"""Probe for plain version updates by unattended test-compiling them
+"""Find plain version updates by unattended test-compiling them.
+
 Copyright (C) 2022 Dirk Müller, SUSE LLC
 
 This program is free software; you can redistribute it and/or
@@ -29,6 +30,7 @@ import secrets
 import string
 import requests
 import urllib.parse
+from xml.etree import ElementTree as ET
 
 
 def parse_from_spec_file(path):
@@ -74,31 +76,31 @@ def repology_get_project_candidates(start_at):
         "?inrepo=opensuse_tumbleweed&outdated=1&family_newest=4-"
     )
     pkgs = {}
-    if resp.status_code == 200:
-        resp = resp.json()
-        for upstream_package in resp:
-            package = None
+    resp.raise_for_status()
+    resp = resp.json()
+    for upstream_package in resp:
+        package = None
 
-            # determine openSUSE package name
-            for repo in resp[upstream_package]:
-                if repo['repo'] == 'opensuse_tumbleweed':
-                    package = repo['srcname']
-                    break
+        # determine openSUSE package name
+        for repo in resp[upstream_package]:
+            if repo['repo'] == 'opensuse_tumbleweed':
+                package = repo['srcname']
+                break
 
-            if not package or package.startswith('perl-') or package in (
-                'chromium', ):
-                # TODO
-                continue
+        if not package or package.startswith('perl-') or package in (
+            'chromium', ):
+            # TODO
+            continue
 
-            pkgs[package] = {}
-            for repo in resp[upstream_package]:
-                if repo['repo'] == 'opensuse_tumbleweed' and repo['status'] != 'legacy':
-                    pkgs[package]['oldv'] = repo['version']
-                if repo['status'] == 'newest':
-                    pkgs[package]['newv'] = repo['version']
+        pkgs[package] = {}
+        for repo in resp[upstream_package]:
+            if repo['repo'] == 'opensuse_tumbleweed' and repo['status'] != 'legacy':
+                pkgs[package]['oldv'] = repo['version']
+            if repo['status'] == 'newest':
+                pkgs[package]['newv'] = repo['version']
 
-            if 'oldv' not in pkgs[package] or 'newv' not in pkgs[package]:
-                pkgs.pop(package)
+        if 'oldv' not in pkgs[package] or 'newv' not in pkgs[package]:
+            pkgs.pop(package)
 
     return pkgs
 
@@ -122,12 +124,26 @@ def test_for_package_checkout(name):
     return True
 
 
+def get_devel_prj_from_checkout():
+    tree = ET.parse(".osc/_meta")
+    projects = [x.attrib['project'] for x in tree.getroot().iter() if x.tag == 'devel']
+    if projects:
+        return projects[0]
+    return None
+
+
 def test_for_package_version_update(pname, oldv, newv):
     build_succeeded = False
 
     if test_for_package_checkout(pname):
         package_information = parse_from_spec_file(os.getcwd())
         primary_spec = sorted(glob.glob('*.spec'), key=len)
+        devel_prj = get_devel_prj_from_checkout()
+
+        if devel_prj in ('Java:packages', 'Java:Factory', 'GNOME:Factory', 'LibreOffice:Factory'):
+            print(f".. skipping test because devel project is {devel_prj}")
+            sh.rm('-rf', pname)
+            return False
 
         if len(primary_spec) == 1:
             primary_spec = primary_spec[0]
@@ -160,7 +176,7 @@ def test_for_package_version_update(pname, oldv, newv):
                             print(".. build failed")
                             os.chdir('..')
                         else:
-                            print("✔️ osc build Success!")
+                            print(f"✔️ osc build Success ({devel_prj})!")
                             build_succeeded = True
                 else:
                     print(".. missing Source0/ no %{version} in Source0")
