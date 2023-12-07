@@ -140,7 +140,9 @@ def test_for_package_version_update(pname, oldv, newv):
         primary_spec = sorted(glob.glob('*.spec'), key=len)
         devel_prj = get_devel_prj_from_checkout()
 
-        if devel_prj in ('Java:packages', 'Java:Factory', 'GNOME:Factory', 'LibreOffice:Factory'):
+        if devel_prj in ('Java:packages', 'Java:Factory',
+                         'GNOME:Factory', 'LibreOffice:Factory',
+                         'devel:languages:python:aws', 'devel:languages:python:azure'):
             print(f".. skipping test because devel project is {devel_prj}")
             sh.rm('-rf', pname)
             return False
