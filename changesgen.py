@@ -244,7 +244,7 @@ def extract_changes_from_tarball(package_information, oldv, newv):
                                         stripped_line.lower().startswith(f"version {oldv}") or
                                         stripped_line.endswith(oldv) or
                                         stripped_line.endswith(f"{oldv}.0") or
-                                        ('release' in stripped_line and oldv in stripped_line)):
+                                        ('release' in stripped_line.lower() and oldv in stripped_line)):
                                     break
                                 if name.rpartition('.')[2].lower() in ('md', 'adoc', 'rst'):
                                     line = md_to_text(line)
