@@ -32,6 +32,8 @@ import textwrap
 import configparser
 import urllib.parse
 
+from subprocess import Popen, PIPE, STDOUT
+
 newreleases_api_key = None
 
 
@@ -43,7 +45,11 @@ def parse_from_spec_file(path):
     if not len(primary_spec):
         return pkg_info
 
-    for line in open(primary_spec[0]):
+    parsed_spec = Popen(f'rpmspec -P {primary_spec[0]}', stdout = PIPE, stderr = STDOUT, shell = True)
+    while True:
+        line = parsed_spec.stdout.readline().decode('utf-8')
+        if not line: break
+        
         if line.partition(' ')[0] in ('%description', '%package'):
             break
 
@@ -244,7 +250,7 @@ def extract_changes_from_tarball(package_information, oldv, newv):
                                         stripped_line.lower().startswith(f"version {oldv}") or
                                         stripped_line.endswith(oldv) or
                                         stripped_line.endswith(f"{oldv}.0") or
-                                        ('release' in stripped_line and oldv in stripped_line)):
+                                        ('release' in stripped_line.lower() and oldv in stripped_line)):
                                     break
                                 if name.rpartition('.')[2].lower() in ('md', 'adoc', 'rst'):
                                     line = md_to_text(line)
