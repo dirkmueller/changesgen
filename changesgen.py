@@ -45,11 +45,11 @@ def parse_from_spec_file(path):
     if not len(primary_spec):
         return pkg_info
 
-    parsed_spec = Popen(f'rpmspec -P {primary_spec[0]}', stdout = PIPE, stderr = STDOUT, shell = True)
+    parsed_spec = Popen(('rpmspec', '-P', primary_spec[0]), stdout=PIPE, stderr=STDOUT)
     while True:
         line = parsed_spec.stdout.readline().decode('utf-8')
         if not line: break
-        
+
         if line.partition(' ')[0] in ('%description', '%package'):
             break
 

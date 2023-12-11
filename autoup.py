@@ -73,7 +73,7 @@ def repology_get_project_candidates(start_at):
         start_at = secrets.choice(string.ascii_lowercase)
     resp = requests.get(
         f"https://repology.org/api/v1/projects/{start_at}/"
-        "?inrepo=opensuse_tumbleweed&outdated=1&family_newest=4-"
+        "?inrepo=opensuse_tumbleweed&outdated=1&family_newest=3-"
     )
     pkgs = {}
     resp.raise_for_status()
@@ -114,8 +114,7 @@ def test_for_package_checkout(name):
     except sh.ErrorReturnCode_1:
         return False
     else:
-        if (os.path.exists(f"{name}/_service") or
-                os.path.exists(f"{name}/_multibuild")):
+        if os.path.exists(f"{name}/_service"):
             # TODO handle services as well
             sh.rm('-rf', name)
             return False
@@ -172,7 +171,7 @@ def test_for_package_version_update(pname, oldv, newv):
                                 os.remove(oldname)
                         try:
                             sh.osc.build(
-                                '--noservice', '--clean',
+                                '--noservice', '--clean', '-k', 'bin',
                                 'standard', 'x86_64', primary_spec)
                         except sh.ErrorReturnCode_1:
                             print(".. build failed")
