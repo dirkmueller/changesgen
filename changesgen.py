@@ -30,6 +30,7 @@ import requests
 import tarfile
 import textwrap
 import configparser
+import packaging.version as pv
 import urllib.parse
 
 from subprocess import Popen, PIPE, STDOUT
@@ -48,7 +49,8 @@ def parse_from_spec_file(path):
     parsed_spec = Popen(('rpmspec', '-P', primary_spec[0]), stdout=PIPE, stderr=STDOUT)
     while True:
         line = parsed_spec.stdout.readline().decode('utf-8')
-        if not line: break
+        if not line:
+            break
 
         if line.partition(' ')[0] in ('%description', '%package'):
             break
@@ -173,9 +175,17 @@ def extract_changes_from_github_release(github_path, oldv, newv):
         release_version = release['tag_name']
         if release_version[0] in ('r', 'v'):
             release_version = release_version[1:]
-        LOG.debug(f"checking {release_version} for {oldv}")
-        if release_version in (oldv, f"v{oldv}"):
-            break
+
+        LOG.debug(f"checking '{release_version}' for '{oldv}'")
+        try:
+            if pv.parse(release_version) <= pv.parse(oldv):
+                LOG.debug(f"found {release_version} <= {oldv}")
+                break
+        except pv.InvalidVersion:
+            if release_version in (oldv, f"v{oldv}"):
+                LOG.debug("f stopping at {release_version}")
+                break
+
         if 'body' in release:
             versionnote = release['body']
             if first:
