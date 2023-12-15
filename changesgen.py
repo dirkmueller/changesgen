@@ -144,6 +144,9 @@ def md_to_text(md):
     r = r.strip(" \r\n")
     # Remove links
     r = re.sub(r'\[([^]]+)\]\([^)]+\)', '\\1', r)
+
+    # Remove git commit identifiers
+    r = re.sub(r' \([0-9a-f]+\)$', '', r)
     return changes_to_text(r)
 
 
