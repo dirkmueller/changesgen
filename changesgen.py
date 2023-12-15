@@ -59,15 +59,14 @@ def parse_from_spec_file(path):
         if line.partition(' ')[0] in ('%description', '%package'):
             break
 
-        line_keyword = line.partition(':')[0].lower()
+        rpmtag = line.partition(':')[0].lower()
 
-        if line_keyword in ('source', 'source0'):
+        if rpmtag in ('source', 'source0'):
             pkg_info['source'] = line.strip().split(' ')[-1]
+        if rpmtag in ('name', 'version'):
+            pkg_info[rpmtag] = line.strip().split(' ')[-1]
 
-        if line_keyword in ('name', 'version'):
-            pkg_info[line_keyword] = line.strip().split(' ')[-1]
-
-        if (line_keyword in ('source', 'source0', 'url') and '://' in line):
+        if (rpmtag in ('source', 'source0', 'url') and '://' in line):
             line_value = line.strip().split(' ')[-1]
 
             for k in pkg_info:
