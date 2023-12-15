@@ -163,6 +163,7 @@ def extract_changes_from_github_release(github_path, oldv, newv):
         return summary
 
     resp = resp.json()
+    first = True
     for release in resp:
         if release['prerelease'] or release['draft']:
             continue
@@ -174,6 +175,10 @@ def extract_changes_from_github_release(github_path, oldv, newv):
             break
         if 'body' in release:
             versionnote = release['body']
+            if first:
+                first = False
+            else:
+                summary += '- '
             summary += f"update to {release_version}:\n"
             for line in BeautifulSoup(versionnote, features="lxml").get_text().split('\n'):
 
