@@ -172,6 +172,7 @@ def extract_changes_from_github_release(github_path, oldv, newv):
 
     resp = resp.json()
     first = True
+    stop_relversion = pv.parse(oldv)
     for release in resp:
         if release['prerelease'] or release['draft']:
             continue
@@ -181,8 +182,12 @@ def extract_changes_from_github_release(github_path, oldv, newv):
 
         LOG.debug(f"checking '{release_version}' for '{oldv}'")
         try:
-            if pv.parse(release_version) <= pv.parse(oldv):
-                LOG.debug(f"found {release_version} <= {oldv}")
+            relver = pv.parse(release_version)
+            if relver.major < stop_relversion.major:
+                LOG.debug(f"skipping over {release_version} < {stop_relversion}")
+                continue
+            if relver.major == stop_relversion.major and relver <= stop_relversion:
+                LOG.debug(f"stopping at {release_version} <= {stop_relversion}")
                 break
         except pv.InvalidVersion:
             if release_version in (oldv, f"v{oldv}"):
