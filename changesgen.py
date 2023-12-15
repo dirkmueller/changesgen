@@ -69,6 +69,9 @@ def parse_from_spec_file(path):
 
             # normalize
             gh_url = urllib.parse.urlparse(line_value)
+            if gh_url.netloc.endswith('github.io'):
+                gh_url = urllib.parse.urlparse(f"https://github.com/{gh_url.netloc.partition('.')[0]}/{gh_url.path.strip('/')}")
+
             if 'github.com' == gh_url.netloc:
                 pkg_info['github_project'] = '/'.join(gh_url.path.split('/')[1:3])
 
