@@ -136,7 +136,9 @@ def changes_to_text(changes):
 
 def md_to_text(md):
     """El cheapo markdown to plain text converter"""
-    r = md.strip(" \r\n")
+    # Remove GitHub style suffixes
+    r = re.sub(r' by \@\S+ in .*$', '', md)
+    r = r.strip(" \r\n")
     # Remove links
     r = re.sub(r'\[([^]]+)\]\([^)]+\)', '\\1', r)
     return changes_to_text(r)
@@ -171,8 +173,7 @@ def extract_changes_from_github_release(github_path, oldv, newv):
             versionnote = release['body']
             summary += f"update to {release_version}:\n"
             for line in BeautifulSoup(versionnote, features="lxml").get_text().split('\n'):
-                # Remove GitHub style suffixes
-                line = re.sub(r' by \@\S+ in .*$', '', line)
+
                 summary += md_to_text(line) + '\n'
     return summary
 
@@ -204,8 +205,6 @@ def extract_changes_from_newreleases(github_path, oldv, newv):
             if 'message' in versionnote:
                 summary += f"update to {release['version']}:\n"
                 for line in BeautifulSoup(versionnote['message'], features="lxml").get_text().split('\n'):
-                    # Remove GitHub style suffixes
-                    line = re.sub(r' by \@\S+ in .*$', '', line)
                     summary += changes_to_text(line) + '\n'
     return summary
 
