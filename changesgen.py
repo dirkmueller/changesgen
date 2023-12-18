@@ -249,7 +249,8 @@ def extract_changes_from_tarball(package_information, oldv, newv):
             LOG.debug(f"Scanning {fname}")
             for candidate in (
                     'NEWS', 'NEWS.adoc', 'NEWS.md', 'NEWS.rst',
-                    'RELEASE.rst', 'releasenotes.rst', 'versionhistory.rst',
+                    'RELEASE.rst', 'releasenotes.rst', 'RELEASE_NOTES.rst',
+                    'versionhistory.rst',
                     'HISTORY.rst', 'HISTORY.md', 'History.txt',
                     'CHANGES.md', 'CHANGES.rst', 'CHANGES.txt', 'CHANGES',
                     'CHANGELOG.md', 'change_log.md', 'CHANGELOG.rst', 'Changelog.txt',
