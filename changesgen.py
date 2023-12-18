@@ -194,7 +194,7 @@ def extract_changes_from_github_release(github_path, oldv, newv):
                 LOG.debug("f stopping at {release_version}")
                 break
 
-        if 'body' in release:
+        if 'body' in release and release['body']:
             versionnote = release['body']
             if first:
                 first = False
