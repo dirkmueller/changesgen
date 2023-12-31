@@ -20,6 +20,7 @@ SPDX-License-Identifier: GPL-2.0-or-later
 """
 
 import argparse
+from docutils.core import publish_parts
 from bs4 import BeautifulSoup
 import glob
 import time
@@ -144,7 +145,7 @@ def changes_to_text(changes):
         textwrap.wrap(
             r, width=65, initial_indent="  * ", subsequent_indent="    "))
 
-    LOG.debug(f"converted {changes} to {r}")
+    LOG.debug(f"changes_to_text: converted {changes} to {r}")
     return r.rstrip()
 
 
@@ -159,6 +160,26 @@ def md_to_text(md):
     # Remove git commit identifiers
     r = re.sub(r' \([0-9a-f]+\)$', '', r)
     return changes_to_text(r)
+
+
+def rst_to_text(rst):
+    """El cheapo reStructuredText to plain text converter"""
+    overrides = {'input_encoding': "unicode",
+                 'doctitle_xform': True,
+                 'initial_header_level': 1}
+    parts = publish_parts(
+        source=rst, source_path=None,
+        destination_path=None,
+        writer_name='html', settings_overrides=overrides)
+    html_body = str(parts['html_body'])
+    html_body = html_body.replace('\n', ' ')
+    LOG.debug(f"rst_to_text: converted {rst} to {html_body}")
+
+    changes = ""
+    bs = BeautifulSoup(html_body, features="lxml")
+    for tag in bs.find_all(['p', 'li']):
+        changes += changes_to_text(tag.get_text() + '\n') + '\n'
+    return changes.rstrip() + '\n'
 
 
 def extract_changes_from_github_release(github_path, oldv, newv):
@@ -268,7 +289,7 @@ def extract_changes_from_tarball(package_information, oldv, newv):
                     if name.rpartition('/')[2].casefold() == candidate.casefold():
                         LOG.debug(f'found changes file: {candidate}')
                         inupdatesection = False
-                        changes = []
+                        update_section = ""
                         for line in source.extractfile(name):
                             line = line.decode(encoding="utf-8",
                                                errors='ignore')
@@ -276,7 +297,6 @@ def extract_changes_from_tarball(package_information, oldv, newv):
                                 stripped_line = line.strip(" \r\n()[]t*#-=:/")
                                 if not stripped_line:
                                     continue
-                                LOG.debug(f"stripped_line {stripped_line}")
                                 # packagename oldversion (releasedate)
                                 if stripped_line.lower().startswith(package_name.lower()):
                                     stripped_line = stripped_line.partition(' ')[2].strip()
@@ -287,17 +307,23 @@ def extract_changes_from_tarball(package_information, oldv, newv):
                                         stripped_line.endswith(f"{oldv}.0") or
                                         ('release' in stripped_line.lower() and oldv in stripped_line)):
                                     break
-                                if name.rpartition('.')[2].lower() in ('md', 'adoc', 'rst'):
-                                    line = md_to_text(line)
-                                else:
-                                    line = changes_to_text(line)
-
-                                changes.append(line.rstrip() + '\n')
+                                update_section += line
                                 continue
 
                             if not inupdatesection and newv in line:
                                 inupdatesection = True
-                        if len(changes):
+
+                        changes = ""
+                        if name.rpartition('.')[2].lower() in ('rst',):
+                            changes = rst_to_text(update_section)
+                        elif name.rpartition('.')[2].lower() in ('md', 'adoc'):
+                            changes = md_to_text(update_section)
+                        else:
+                            for line in update_section.split('\n'):
+                                changes += changes_to_text(line).rstrip() + '\n'
+
+                        changes = changes.rstrip() + '\n'
+                        if len(changes) > 4:
                             print(f"update to {newv}:\n{''.join(changes)}")
                             return True
                             break
