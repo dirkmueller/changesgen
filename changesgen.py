@@ -126,6 +126,12 @@ def changes_to_text(changes):
         if pr_title:
             r = pr_title.strip() + '\n'
 
+    if r.endswith(']\n'):
+        # Change " Foo bar [#123]" into "Foo bar"
+        pr_title = r.rpartition('[#')[0]
+        if pr_title:
+            r = pr_title.strip() + '\n'
+
     if len(r) > 2:
         while r.startswith('\t'):
             r = r[1:]
