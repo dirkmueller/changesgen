@@ -151,15 +151,18 @@ def changes_to_text(changes):
 
 def md_to_text(md):
     """El cheapo markdown to plain text converter"""
-    # Remove GitHub style suffixes
-    r = re.sub(r' by \@\S+ in .*$', '', md)
-    r = r.strip(" \r\n")
-    # Remove links
-    r = re.sub(r'\[([^]]+)\]\([^)]+\)', '\\1', r)
+    changes = ""
+    for line in md.splitlines():
+        # Remove GitHub style suffixes
+        r = re.sub(r' by \@\S+ in .*$', '', line)
+        r = r.strip(" \r\n")
+        # Remove links
+        r = re.sub(r'\[([^]]+)\]\([^)]+\)', '\\1', r)
 
-    # Remove git commit identifiers
-    r = re.sub(r' \([0-9a-f]+\)$', '', r)
-    return changes_to_text(r)
+        # Remove git commit identifiers
+        r = re.sub(r' \([0-9a-f]+\)$', '', r)
+        changes += changes_to_text(r + '\n') + '\n'
+    return changes
 
 
 def rst_to_text(rst):
