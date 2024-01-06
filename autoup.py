@@ -24,13 +24,14 @@ SPDX-License-Identifier: GPL-2.0-or-later
 import argparse
 import os
 import glob
-import sh
 import logging as LOG
 import secrets
 import string
-import requests
 import urllib.parse
 from xml.etree import ElementTree as ET
+
+import requests
+import sh
 
 
 def parse_from_spec_file(path):
@@ -38,7 +39,7 @@ def parse_from_spec_file(path):
 
     pkg_info = {}
 
-    if not len(primary_spec):
+    if not primary_spec:
         return pkg_info
 
     for line in open(primary_spec[0]):
@@ -56,8 +57,8 @@ def parse_from_spec_file(path):
         if (line_keyword in ('source', 'source0', 'url') and '://' in line):
             line_value = line.strip().split(' ')[-1]
 
-            for k in pkg_info:
-                line_value = line_value.replace('%{' + k + '}', pkg_info[k])
+            for k, v in pkg_info.items():
+                line_value = line_value.replace('%{' + k + '}', v)
 
             # normalize
             gh_url = urllib.parse.urlparse(line_value)
@@ -195,21 +196,23 @@ def test_for_package_version_update(pname, oldv, newv):
 
 
 def main():
-    # LOG.basicConfig(level=LOG.DEBUG)
-
     parse = argparse.ArgumentParser(description='Test for version updates')
+    parse.add_argument('-d', '--debug', action='store_true')
     parse.add_argument(
         '--letter', metavar='letter', type=str, default=None,
         help='starting name to try')
 
     args = parse.parse_args()
 
+    if args.debug:
+        LOG.basicConfig(level=LOG.DEBUG)
+
     pkgs = repology_get_project_candidates(args.letter)
 
     stat_tested = stat_tested_success = 0
 
     while len(pkgs):
-        pname = secrets.choice([p for p in pkgs])
+        pname = secrets.choice(list(pkgs))
         pkg = pkgs.pop(pname)
         print(f"[{stat_tested_success}/{stat_tested}] Testing {pname}: {pkg['oldv']} -> {pkg['newv']} (remaining {len(pkgs)})")
         stat_tested += 1
