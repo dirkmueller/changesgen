@@ -20,31 +20,33 @@ SPDX-License-Identifier: GPL-2.0-or-later
 """
 
 import argparse
-from docutils.core import publish_parts
-from bs4 import BeautifulSoup
+import configparser
 import glob
-import time
 import logging as LOG
+import time
 import os
 import re
-import requests
+from subprocess import Popen, PIPE, STDOUT
 import tarfile
 import textwrap
-import configparser
-import packaging.version as pv
 import urllib.parse
 
-from subprocess import Popen, PIPE, STDOUT
+from docutils.core import publish_parts
+from bs4 import BeautifulSoup
+import requests
+import packaging.version as pv
 
-newreleases_api_key = None
+NEWRELEASES_API_KEY = None
 
 
 def parse_from_spec_file(path):
+    """Parse the spec file and return a dictionary with relevant parts of information, like
+       upstream home url, version numbers etc"""
     primary_spec = sorted(glob.glob(os.path.join(path, '*.spec')), key=len)
 
     pkg_info = {}
 
-    if not len(primary_spec):
+    if not primary_spec:
         return pkg_info
 
     parsed_spec = Popen(('rpmspec', '-P', primary_spec[0]), stdout=PIPE, stderr=STDOUT, text=True)
@@ -70,13 +72,14 @@ def parse_from_spec_file(path):
         if (rpmtag in ('source', 'source0', 'url') and '://' in line):
             line_value = line.strip().split(' ')[-1]
 
-            for k in pkg_info:
-                line_value = line_value.replace('%{' + k + '}', pkg_info[k])
+            for k, v in pkg_info.items():
+                line_value = line_value.replace('%{' + k + '}', v)
 
             # normalize
             gh_url = urllib.parse.urlparse(line_value)
             if gh_url.netloc.endswith('github.io'):
-                gh_url = urllib.parse.urlparse(f"https://github.com/{gh_url.netloc.partition('.')[0]}/{gh_url.path.strip('/')}")
+                gh_url = urllib.parse.urlparse(
+                    f"https://github.com/{gh_url.netloc.partition('.')[0]}/{gh_url.path.strip('/')}")
 
             if 'github.com' == gh_url.netloc:
                 pkg_info['github_project'] = '/'.join(gh_url.path.split('/')[1:3])
@@ -85,11 +88,11 @@ def parse_from_spec_file(path):
 
 
 def req_addnewrelease(provider, path):
-    global newreleases_api_key
+    global NEWRELEASES_API_KEY
 
     resp = requests.post(
         "https://api.newreleases.io/v1/projects",
-        headers={'X-Key': newreleases_api_key},
+        headers={'X-Key': NEWRELEASES_API_KEY},
         json={
             'provider': provider,
             'name': path,
@@ -102,18 +105,14 @@ def req_addnewrelease(provider, path):
 
 
 def req_newreleases(path):
-    global newreleases_api_key
+    global NEWRELEASES_API_KEY
 
     LOG.debug(f"requesting newreleases: {path}")
     resp = requests.get(
         f'https://api.newreleases.io/v1/{path}',
-        headers={'X-Key': newreleases_api_key}
+        headers={'X-Key': NEWRELEASES_API_KEY}
     )
-
-    if resp.status_code == 429:
-        LOG.error("Hit api request limit on newrelease.io")
-        raise
-
+    resp.raise_for_status()
     return resp.status_code, resp.json()
 
 
@@ -169,6 +168,7 @@ def rst_to_text(rst):
     """El cheapo reStructuredText to plain text converter"""
     overrides = {'input_encoding': "unicode",
                  'doctitle_xform': True,
+                 'report_level': 5,
                  'initial_header_level': 1}
     parts = publish_parts(
         source=rst, source_path=None,
@@ -202,6 +202,7 @@ def extract_changes_from_github_release(github_path, oldv, newv):
 
     resp = resp.json()
     first = True
+    start_relversion = pv.parse(newv)
     stop_relversion = pv.parse(oldv)
     for release in resp:
         if release['prerelease'] or release['draft']:
@@ -213,6 +214,9 @@ def extract_changes_from_github_release(github_path, oldv, newv):
         LOG.debug(f"checking '{release_version}' for '{oldv}'")
         try:
             relver = pv.parse(release_version)
+            if relver > start_relversion:
+                LOG.debug(f"skipping over {release_version} > {start_relversion}")
+                continue
             if relver.major < stop_relversion.major:
                 LOG.debug(f"skipping over {release_version} < {stop_relversion}")
                 continue
@@ -329,18 +333,19 @@ def extract_changes_from_tarball(package_information, oldv, newv):
                         if len(changes) > 4:
                             print(f"update to {newv}:\n{''.join(changes)}")
                             return True
-                            break
                         pass
                 pass
     return False
 
 
 def main():
-    with open(os.path.expanduser("~/.config/changesgenrc")) as f:
-        global newreleases_api_key
+    """Main function"""
+
+    with open(os.path.expanduser("~/.config/changesgenrc"), encoding="utf8") as f:
+        global NEWRELEASES_API_KEY
         c = configparser.ConfigParser(strict=False)
         c.read_file(f)
-        newreleases_api_key = c['DEFAULT'].get('newreleases_api_key', None)
+        NEWRELEASES_API_KEY = c['DEFAULT'].get('newreleases_api_key', None)
 
     parse = argparse.ArgumentParser(
         description='Generate OSC vc changes', exit_on_error=False)
@@ -382,7 +387,7 @@ def main():
     if 'github_project' in package_information:
         summary = extract_changes_from_github_release(
             package_information['github_project'], oldv, newv)
-        if not summary and newreleases_api_key:
+        if not summary and NEWRELEASES_API_KEY:
             summary = extract_changes_from_newreleases(
                 package_information['github_project'], oldv, newv)
     if summary and len(summary) > 5:
