@@ -303,6 +303,7 @@ def extract_changes_from_tarball(package_information, oldv, newv):
                             if inupdatesection:
                                 stripped_line = line.strip(" \r\n()[]t*#-=:/")
                                 if not stripped_line:
+                                    update_section += line
                                     continue
                                 # packagename oldversion (releasedate)
                                 if stripped_line.lower().startswith(package_name.lower()):
