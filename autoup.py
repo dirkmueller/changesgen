@@ -74,7 +74,8 @@ def repology_get_project_candidates(start_at):
         start_at = secrets.choice(string.ascii_lowercase)
     resp = requests.get(
         f"https://repology.org/api/v1/projects/{start_at}/"
-        "?inrepo=opensuse_tumbleweed&outdated=1&family_newest=3-"
+        "?inrepo=opensuse_tumbleweed&outdated=1&family_newest=3-",
+       headers={"User-Agent": "github.com/dirkmueller/changesgen"}
     )
     pkgs = {}
     resp.raise_for_status()
