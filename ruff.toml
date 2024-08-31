@@ -6,3 +6,6 @@ skip-magic-trailing-comma = true
 [lint]
 ignore = ["E501"]
 select = ["E", "F", "I", "C4", "FURB"]
+
+[lint.isort]
+split-on-trailing-comma=false

@@ -20,11 +20,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 SPDX-License-Identifier: GPL-2.0-or-later
 """
 
-
 import argparse
-import os
 import glob
 import logging as LOG
+import os
 import secrets
 import string
 import urllib.parse
@@ -54,7 +53,7 @@ def parse_from_spec_file(path):
         if line_keyword in ('name', 'version'):
             pkg_info[line_keyword] = line.strip().split(' ')[-1]
 
-        if (line_keyword in ('source', 'source0', 'url') and '://' in line):
+        if line_keyword in ('source', 'source0', 'url') and '://' in line:
             line_value = line.strip().split(' ')[-1]
 
             for k, v in pkg_info.items():
@@ -69,13 +68,12 @@ def parse_from_spec_file(path):
 
 
 def repology_get_project_candidates(start_at):
-
     if start_at is None:
         start_at = secrets.choice(string.ascii_lowercase)
     resp = requests.get(
-        f"https://repology.org/api/v1/projects/{start_at}/"
-        "?inrepo=opensuse_tumbleweed&outdated=1&family_newest=3-",
-       headers={"User-Agent": "github.com/dirkmueller/changesgen"}
+        f'https://repology.org/api/v1/projects/{start_at}/'
+        '?inrepo=opensuse_tumbleweed&outdated=1&family_newest=3-',
+        headers={'User-Agent': 'github.com/dirkmueller/changesgen'},
     )
     pkgs = {}
     resp.raise_for_status()
@@ -89,8 +87,7 @@ def repology_get_project_candidates(start_at):
                 package = repo['srcname']
                 break
 
-        if not package or package.startswith('perl-') or package in (
-            'chromium', ):
+        if not package or package.startswith('perl-') or package in ('chromium',):
             # TODO
             continue
 
@@ -108,15 +105,15 @@ def repology_get_project_candidates(start_at):
 
 
 def test_for_package_checkout(name):
-    os.chdir(os.path.expanduser("~/src/os/Factory"))
-    assert "/" not in name
-    sh.rm("-rf", name)
+    os.chdir(os.path.expanduser('~/src/os/Factory'))
+    assert '/' not in name
+    sh.rm('-rf', name)
     try:
         sh.osc.co(name)
     except sh.ErrorReturnCode_1:
         return False
     else:
-        if os.path.exists(f"{name}/_service"):
+        if os.path.exists(f'{name}/_service'):
             # TODO handle services as well
             sh.rm('-rf', name)
             return False
@@ -126,7 +123,7 @@ def test_for_package_checkout(name):
 
 
 def get_devel_prj_from_checkout():
-    tree = ET.parse(".osc/_meta")
+    tree = ET.parse('.osc/_meta')
     projects = [x.attrib['project'] for x in tree.getroot().iter() if x.tag == 'devel']
     if projects:
         return projects[0]
@@ -141,50 +138,68 @@ def test_for_package_version_update(pname, oldv, newv):
         primary_spec = sorted(glob.glob('*.spec'), key=len)
         devel_prj = get_devel_prj_from_checkout()
 
-        if devel_prj in ('Java:packages', 'Java:Factory',
-                         'GNOME:Factory', 'LibreOffice:Factory',
-                         'devel:languages:python:aws', 'devel:languages:python:azure'):
-            print(f".. skipping test because devel project is {devel_prj}")
+        if devel_prj in (
+            'Java:packages',
+            'Java:Factory',
+            'GNOME:Factory',
+            'LibreOffice:Factory',
+            'devel:languages:python:aws',
+            'devel:languages:python:azure',
+        ):
+            print(f'.. skipping test because devel project is {devel_prj}')
             sh.rm('-rf', pname)
             return False
 
         if len(primary_spec) == 1:
             primary_spec = primary_spec[0]
 
-            if package_information['version'] in (oldv, ):
+            if package_information['version'] in (oldv,):
                 sh.sed(
-                    '-i', '-r', '-e',
-                    f"s,^Version: *{oldv},Version:        {newv},",
-                    primary_spec)
-                if ('source' in package_information and
-                    ('%version' in package_information['source'] or
-                        '%{version}' in package_information['source'])):
+                    '-i',
+                    '-r',
+                    '-e',
+                    f's,^Version: *{oldv},Version:        {newv},',
+                    primary_spec,
+                )
+                if 'source' in package_information and (
+                    '%version' in package_information['source']
+                    or '%{version}' in package_information['source']
+                ):
                     try:
                         sh.Command('/usr/lib/obs/service/download_files')(
-                            '--outdir', os.getcwd())
+                            '--outdir', os.getcwd()
+                        )
                         # sh.osc.service.disabledrun.download_files()
                     except sh.ErrorReturnCode_1:
-                        print(".. downloading new sources failed")
+                        print('.. downloading new sources failed')
                         os.chdir('..')
                     else:
-                        for fname in glob.glob(f"*{newv}*"):
+                        for fname in glob.glob(f'*{newv}*'):
                             oldname = fname.replace(newv, oldv)
                             if os.path.exists(oldname):
                                 os.remove(oldname)
                         try:
                             sh.osc.build(
-                                '--noservice', '--clean', '-k', 'bin',
-                                'standard', 'x86_64', primary_spec)
+                                '--noservice',
+                                '--clean',
+                                '-k',
+                                'bin',
+                                'standard',
+                                'x86_64',
+                                primary_spec,
+                            )
                         except sh.ErrorReturnCode_1:
-                            print(".. build failed")
+                            print('.. build failed')
                             os.chdir('..')
                         else:
-                            print(f"✔️ osc build Success ({devel_prj})!")
+                            print(f'✔️ osc build Success ({devel_prj})!')
                             build_succeeded = True
                 else:
-                    print(".. missing Source0/ no %{version} in Source0")
+                    print('.. missing Source0/ no %{version} in Source0')
             else:
-                print(f".. did not find {oldv} in Version - got {package_information['version']}")
+                print(
+                    f".. did not find {oldv} in Version - got {package_information['version']}"
+                )
         else:
             print('.. more than one spec file found')
     else:
@@ -200,8 +215,12 @@ def main():
     parse = argparse.ArgumentParser(description='Test for version updates')
     parse.add_argument('-d', '--debug', action='store_true')
     parse.add_argument(
-        '--letter', metavar='letter', type=str, default=None,
-        help='starting name to try')
+        '--letter',
+        metavar='letter',
+        type=str,
+        default=None,
+        help='starting name to try',
+    )
 
     args = parse.parse_args()
 
@@ -215,7 +234,9 @@ def main():
     while len(pkgs):
         pname = secrets.choice(list(pkgs))
         pkg = pkgs.pop(pname)
-        print(f"[{stat_tested_success}/{stat_tested}] Testing {pname}: {pkg['oldv']} -> {pkg['newv']} (remaining {len(pkgs)})")
+        print(
+            f"[{stat_tested_success}/{stat_tested}] Testing {pname}: {pkg['oldv']} -> {pkg['newv']} (remaining {len(pkgs)})"
+        )
         stat_tested += 1
 
         if test_for_package_version_update(pname, pkg['oldv'], pkg['newv']):
