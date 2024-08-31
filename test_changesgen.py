@@ -37,3 +37,18 @@ def test_rst_to_text():
   * Django 5.1 support
 """
     )
+
+    assert (
+        rst_to_text("""
+1.20.0 (2024-07-19)
+-------------------
+
+* Fix the ``admin_register`` fixer to avoid rewriting when there are duplicate ``ModelAdmin`` classes in the file.
+
+  `Issue #471 <https://github.com/link/to/471>`__.
+
+"""
+    ) == """  * Fix the admin_register fixer to avoid rewriting when there
+    are duplicate ModelAdmin classes in the file. Issue #471.
+"""
+    )

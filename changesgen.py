@@ -198,7 +198,7 @@ def rst_to_text(rst):
 
     changes: str = ''
     bs = BeautifulSoup(html_body, features='lxml')
-    for tag in bs.find_all(['p', 'li']):
+    for tag in bs.find_all('li'):
         changes_text: str = tag.get_text()
         # Skip subsection titles
         if changes_text in ('Fixed', 'Added'):
