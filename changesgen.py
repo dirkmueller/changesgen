@@ -24,6 +24,7 @@ import configparser
 import glob
 import logging as LOG
 import os
+from pathlib import Path
 import re
 import tarfile
 import textwrap
@@ -39,12 +40,12 @@ from docutils.core import publish_parts
 NEWRELEASES_API_KEY = None
 
 
-def parse_from_spec_file(path):
+def parse_from_spec_file(path: Path) -> dict[str]:
     """Parse the spec file and return a dictionary with relevant parts of information, like
     upstream home url, version numbers etc"""
-    primary_spec = sorted(glob.glob(os.path.join(path, '*.spec')), key=len)
+    primary_spec = sorted(path.glob('*.spec'), key=lambda x: len(str(x)))
 
-    pkg_info = {}
+    pkg_info: dict[str] = {}
 
     if not primary_spec:
         return pkg_info
@@ -339,7 +340,7 @@ def extract_changes_from_tarball(package_information, oldv, newv):
     package_name = package_information['name']
     LOG.debug(f'looking for *{newv}*')
     for fname in glob.iglob(f'*{newv}*'):
-        if not (os.path.isfile(fname) and tarfile.is_tarfile(fname)):
+        if not (Path(fname).is_file and tarfile.is_tarfile(fname)):
             continue
 
         with tarfile.open(fname) as source:
@@ -412,7 +413,7 @@ def main():
     if args.debug:
         LOG.basicConfig(level=LOG.DEBUG)
 
-    package_information = parse_from_spec_file(os.getcwd())
+    package_information = parse_from_spec_file(Path.cwd())
 
     if 'version' not in package_information:
         LOG.fatal('Cannot determine starting version (not run in osc checkout?)')
@@ -421,9 +422,11 @@ def main():
     oldv = newv = package_information['version']
 
     if os.path.exists('.osc'):
-        old_package_information = parse_from_spec_file(
-            os.path.join(os.getcwd(), '.osc')
-        )
+        # Sources are in different location depending on osc version
+        osc_sources: Path = Path.cwd() / '.osc'
+        if (osc_sources / 'sources').is_dir():
+            osc_sources = osc_sources / 'sources'
+        old_package_information = parse_from_spec_file(osc_sources)
         oldv = old_package_information['version']
 
     if oldv == newv:
