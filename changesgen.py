@@ -24,12 +24,12 @@ import configparser
 import glob
 import logging as LOG
 import os
-from pathlib import Path
 import re
 import tarfile
 import textwrap
 import time
 import urllib.parse
+from pathlib import Path
 from subprocess import PIPE, STDOUT, Popen
 
 import packaging.version as pv
