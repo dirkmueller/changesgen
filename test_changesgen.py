@@ -1,4 +1,24 @@
-from changesgen import changes_to_text, rst_to_text
+from changesgen import changes_to_text, extract_update_section, rst_to_text
+
+
+def test_extraction_section_trio():
+    extracted_section = extract_update_section(
+        '0.26.2',
+        '0.27.0',
+        'python-trio',
+        """
+- not yet included
+Trio 0.27.0
+
+  included text
+Trio 0.26.2 (2024-08-08)
+- no longer included
+""".splitlines(),
+    )
+
+    assert 'not yet included' not in extracted_section
+    assert 'included text' in extracted_section
+    assert 'no longer included' not in extracted_section
 
 
 def test_strip_github_issues():
@@ -10,10 +30,7 @@ def test_strip_github_issues():
         == '  * some description'
     )
 
-    assert (
-        changes_to_text('Something done here (#123)\n')
-        == '  * Something done here'
-    )
+    assert changes_to_text('Something done here (#123)\n') == '  * Something done here'
 
 
 def test_rst_to_text():
@@ -47,8 +64,8 @@ def test_rst_to_text():
 
   `Issue #471 <https://github.com/link/to/471>`__.
 
-"""
-    ) == """  * Fix the admin_register fixer to avoid rewriting when there
+""")
+        == """  * Fix the admin_register fixer to avoid rewriting when there
     are duplicate ModelAdmin classes in the file. Issue #471.
 """
     )

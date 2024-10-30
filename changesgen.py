@@ -310,8 +310,11 @@ def extract_update_section(oldv, newv, package_name, infile):
     with {oldv}. e.g. with other words we assume reverse chronological ordering."""
     inupdatesection = False
     update_section: str = ''
+    if package_name.startswith('python-'):
+        package_name = package_name.partition('-')[2]
     for line in infile:
-        line: str = line.decode(encoding='utf-8', errors='ignore')
+        if not isinstance(line, str):
+            line: str = line.decode(encoding='utf-8', errors='ignore')
         if inupdatesection:
             stripped_line: str = line.strip(' \r\n()[]t*#-=:/`')
             if stripped_line:
@@ -320,7 +323,7 @@ def extract_update_section(oldv, newv, package_name, infile):
                     stripped_line = stripped_line.partition(' ')[2].strip()
                 if (
                     stripped_line.startswith(oldv)
-                    or stripped_line.startswith(f'({oldv})')
+                    or stripped_line.startswith(f'{oldv}')
                     or stripped_line.lower().startswith(f'version {oldv}')
                     or stripped_line.endswith(oldv)
                     or stripped_line.endswith(f'{oldv}.0')
