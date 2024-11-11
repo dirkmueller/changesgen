@@ -138,6 +138,11 @@ def test_for_package_version_update(pname, oldv, newv):
         primary_spec = sorted(glob.glob('*.spec'), key=len)
         devel_prj = get_devel_prj_from_checkout()
 
+        if pname in ('libreoffice', 'lucene++'):
+            print(f'.. skipping test because package is {pname}')
+            sh.rm('-rf', pname)
+            return False
+
         if devel_prj in (
             'Java:packages',
             'Java:Factory',
