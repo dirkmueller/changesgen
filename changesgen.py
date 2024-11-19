@@ -37,7 +37,8 @@ import requests
 from bs4 import BeautifulSoup
 from docutils.core import publish_parts
 
-NEWRELEASES_API_KEY = None
+NEWRELEASES_API_KEY: str | None = None
+GITHUB_API_KEY: str | None = None
 
 
 def parse_from_spec_file(path: Path) -> dict[str]:
@@ -217,10 +218,11 @@ def extract_changes_from_github_release(github_path, oldv, newv):
         f'https://api.github.com/{path}',
         headers={
             'X-GitHub-Api-Version': '2022-11-28',
+            'Authorization': f'Bearer {GITHUB_API_KEY}' if GITHUB_API_KEY else None,
             'Accept': 'application/vnd.github+json',
         },
+        allow_redirects=True,
     )
-
     if resp.status_code > 200:
         LOG.error(f'GitHub Releases returned {resp.status_code}')
         return summary
@@ -399,10 +401,11 @@ def main():
     """Main function"""
 
     with open(os.path.expanduser('~/.config/changesgenrc'), encoding='utf8') as f:
-        global NEWRELEASES_API_KEY
+        global NEWRELEASES_API_KEY, GITHUB_API_KEY
         c = configparser.ConfigParser(strict=False)
         c.read_file(f)
         NEWRELEASES_API_KEY = c['DEFAULT'].get('newreleases_api_key', None)
+        GITHUB_API_KEY = c['DEFAULT'].get('github_api_key', None)
 
     parse = argparse.ArgumentParser(
         description='Generate OSC vc changes', exit_on_error=False
