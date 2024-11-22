@@ -130,6 +130,10 @@ def changes_to_text(changes):
         pr_title: str = r.rpartition('(:github-user:')[0]
         if pr_title:
             r = pr_title.strip() + '\n'
+        # Strip (:pr:`xxxx`)
+        pr_title: str = r.rpartition('(:pr:')[0]
+        if pr_title:
+            r = pr_title.strip() + '\n'
 
     if r.endswith('`\n'):
         # Strip :github-issue:`1234`
