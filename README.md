@@ -11,7 +11,7 @@ This is typically called with the current working directory inside an osc packag
     osc vc -m "$(changesgen)"
 
 By default, it determines the news for this version update by comparing
-the versions in the uncommitted checkout with the last comitted base version.
+the versions in the uncommitted checkout with the last committed base version.
 You can explicitly specify these as parameters as well.
 
 changesgen benefits from an API key for newreleases.io website which is
