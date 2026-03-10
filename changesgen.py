@@ -153,6 +153,10 @@ def changes_to_text(changes):
         if m := re.match(r' *\* (.*)', r):
             r = m.group(1)
 
+    # Remove GitHub style suffixes
+    r = re.sub(r' by \@\S+ in https://.*$', '', r)
+    r = r.strip(' \r\n')
+
     r = '\n'.join(
         textwrap.wrap(r, width=65, initial_indent='  * ', subsequent_indent='    ')
     )
@@ -166,7 +170,7 @@ def md_to_text(md):
     changes = ''
     for line in md.splitlines():
         # Remove GitHub style suffixes
-        r = re.sub(r' by \@\S+ in .*$', '', line)
+        r = re.sub(r' by \@\S+ in https://.*$', '', line)
         r = r.strip(' \r\n')
         # Remove links
         r = re.sub(r'\[([^]]+)\]\([^)]+\)', '\\1', r)
