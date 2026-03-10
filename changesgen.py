@@ -193,7 +193,7 @@ def rst_to_text(rst):
         source=rst,
         source_path=None,
         destination_path=None,
-        writer_name='html',
+        writer='html',
         settings_overrides=overrides,
     )
     html_body: str = str(parts['html_body'])
