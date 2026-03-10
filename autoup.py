@@ -138,7 +138,7 @@ def test_for_package_version_update(pname, oldv, newv):
         primary_spec = sorted(glob.glob('*.spec'), key=len)
         devel_prj = get_devel_prj_from_checkout()
 
-        if pname in ('libreoffice', 'lucene++'):
+        if pname in ('libreoffice', 'lucene++', 'python-python-lsp-server'):
             print(f'.. skipping test because package is {pname}')
             sh.rm('-rf', pname)
             return False
@@ -203,7 +203,7 @@ def test_for_package_version_update(pname, oldv, newv):
                     print('.. missing Source0/ no %{version} in Source0')
             else:
                 print(
-                    f".. did not find {oldv} in Version - got {package_information['version']}"
+                    f'.. did not find {oldv} in Version - got {package_information["version"]}'
                 )
         else:
             print('.. more than one spec file found')
@@ -240,7 +240,7 @@ def main():
         pname = secrets.choice(list(pkgs))
         pkg = pkgs.pop(pname)
         print(
-            f"[{stat_tested_success}/{stat_tested}] Testing {pname}: {pkg['oldv']} -> {pkg['newv']} (remaining {len(pkgs)})"
+            f'[{stat_tested_success}/{stat_tested}] Testing {pname}: {pkg["oldv"]} -> {pkg["newv"]} (remaining {len(pkgs)})'
         )
         stat_tested += 1
 
