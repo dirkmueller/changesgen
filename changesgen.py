@@ -83,7 +83,7 @@ def parse_from_spec_file(path: Path) -> dict[str]:
             gh_url = urllib.parse.urlparse(line_value)
             if gh_url.netloc.endswith('github.io'):
                 gh_url = urllib.parse.urlparse(
-                    f"https://github.com/{gh_url.netloc.partition('.')[0]}/{gh_url.path.strip('/')}"
+                    f'https://github.com/{gh_url.netloc.partition(".")[0]}/{gh_url.path.strip("/")}'
                 )
 
             if 'github.com' == gh_url.netloc:
@@ -100,9 +100,7 @@ def req_addnewrelease(provider, path):
         headers={'X-Key': NEWRELEASES_API_KEY},
         json={'provider': provider, 'name': path, 'email_notification': 'instant'},
     )
-    LOG.info(
-        'adding new release for provider ' f'{provider}/{path}: {resp.status_code}'
-    )
+    LOG.info(f'adding new release for provider {provider}/{path}: {resp.status_code}')
     return resp.status_code, resp.json()
 
 
@@ -269,7 +267,11 @@ def extract_changes_from_github_release(github_path, oldv, newv):
             for line in (
                 BeautifulSoup(versionnote, features='lxml').get_text().split('\n')
             ):
-                summary += md_to_text(line) + '\n'
+                if line in ("## What's Changed",):
+                    continue
+                if line in ('## New Contributors',):
+                    break
+                summary += md_to_text(line)
     return summary
 
 
@@ -296,10 +298,10 @@ def extract_changes_from_newreleases(github_path, oldv, newv):
             break
         if 'has_note' in release:
             _, versionnote = req_newreleases(
-                f"projects/github/{github_path}/releases/{release['version']}/note"
+                f'projects/github/{github_path}/releases/{release["version"]}/note'
             )
             if 'message' in versionnote:
-                summary += f"update to {release['version']}:\n"
+                summary += f'update to {release["version"]}:\n'
                 for line in (
                     BeautifulSoup(versionnote['message'], features='lxml')
                     .get_text()
@@ -396,7 +398,7 @@ def extract_changes_from_tarball(package_information, oldv, newv):
 
                         changes = changes.rstrip() + '\n'
                         if len(changes) > 4:
-                            print(f"update to {newv}:\n{''.join(changes)}")
+                            print(f'update to {newv}:\n{"".join(changes)}')
                             return True
     return False
 
