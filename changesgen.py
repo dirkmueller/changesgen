@@ -356,7 +356,7 @@ def extract_changes_from_tarball(package_information, oldv, newv):
     package_name = package_information['name']
     LOG.debug(f'looking for *{newv}*')
     for fname in glob.iglob(f'*{newv}*'):
-        if not (Path(fname).is_file and tarfile.is_tarfile(fname)):
+        if not ((Path.cwd() / fname).is_file() and tarfile.is_tarfile(fname)) :
             continue
 
         with tarfile.open(fname) as source:
