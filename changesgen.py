@@ -118,6 +118,7 @@ def req_newreleases(path):
 def changes_to_text(changes):
     """El cheapo cleanup of changes lines"""
     r: str = changes
+    r = r.replace('\\', '')
 
     if r.endswith(')\n'):
         # Change " Foo bar (#123)" into "Foo bar"
